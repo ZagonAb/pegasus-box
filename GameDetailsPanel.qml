@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
+import "qrc:/qmlutils" as PegasusUtils
 import "utils.js" as Utils
 
 Item {
@@ -67,9 +68,8 @@ Item {
                 Image {
                     id: gameImage
                     anchors.fill: parent
-                    anchors.margins: vpx(2)
-                    source: root.currentGame ? root.currentGame.assets.boxFront || root.currentGame.assets.logo || "" : ""
-                    fillMode: Image.PreserveAspectCrop
+                    source: root.currentGame ? root.currentGame.assets.screenshot || root.currentGame.assets.logo || "" : ""
+                    fillMode: Image.PreserveAspectFit
                     asynchronous: true
 
                     Rectangle {
@@ -91,7 +91,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: root.currentGame ? root.currentGame.title : "Select a game"
+                text: root.currentGame ? Utils.cleanGameTitle(root.currentGame.title) : "Select a game"
                 color: textColor
                 font.family: fontFamily
                 font.pixelSize: vpx(22)
@@ -174,15 +174,36 @@ Item {
                     font.bold: true
                 }
 
-                Text {
+                Item {
+                    id: scrollContainer
                     width: parent.width
-                    text: root.currentGame ? root.currentGame.description : ""
-                    color: secondaryTextColor
-                    font.family: fontFamily
-                    font.pixelSize: vpx(14)
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 8
-                    elide: Text.ElideRight
+                    height: width * 0.5
+                    clip: true
+
+                    PegasusUtils.AutoScroll {
+                        id: autoscroll
+                        anchors.fill: parent
+                        pixelsPerSecond: 15
+                        scrollWaitDuration: 3000
+
+                        Item {
+                            width: autoscroll.width
+                            height: descripText.height
+
+                            Text {
+                                id: descripText
+                                width: parent.width
+                                text: root.currentGame ? root.currentGame.description : ""
+                                wrapMode: Text.WordWrap
+                                lineHeight: 1.4
+                                font {
+                                    family: global.fonts.sans
+                                    pixelSize: vpx(14)
+                                }
+                                color: "white"
+                            }
+                        }
+                    }
                 }
             }
 
@@ -270,7 +291,7 @@ Item {
             right: parent.right
             top: detailsFlickable.top
             bottom: detailsFlickable.bottom
-            rightMargin: vpx(-15)
+            rightMargin: vpx(6)
         }
         width: vpx(6)
         radius: width / 2
@@ -283,12 +304,22 @@ Item {
         }
 
         Rectangle {
+            id: scrollHandle
             anchors {
                 left: parent.left
                 right: parent.right
             }
-            height: Math.max(vpx(30), detailsFlickable.height * detailsFlickable.visibleArea.heightRatio)
-            y: detailsFlickable.visibleArea.yPosition * detailsFlickable.height
+            height: Math.max(vpx(30), scrollBar.height * detailsFlickable.visibleArea.heightRatio)
+
+            // LIMITAR LA POSICIÓN Y PARA QUE NO SE SALGA DEL PADRE
+            y: Math.min(
+                Math.max(
+                    0, // Límite superior
+                    detailsFlickable.visibleArea.yPosition * scrollBar.height
+                ),
+                scrollBar.height - scrollHandle.height // Límite inferior
+            )
+
             radius: width / 2
             color: accentColor
         }

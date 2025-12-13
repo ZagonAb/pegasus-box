@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQml 2.15
 import SortFilterProxyModel 0.2
 import QtGraphicalEffects 1.12
+import QtQuick.Layouts 1.15  // AÑADIDO
 
 FocusScope {
     id: collectionsPanel
@@ -37,7 +38,7 @@ FocusScope {
     // Título del panel
     Text {
         id: panelTitle
-        text: "COLLECTIONS"
+        text: "PegasusBox"
         color: accentColor
         font.family: condensedFontFamily
         font.pixelSize: vpx(24)
@@ -50,9 +51,8 @@ FocusScope {
         }
     }
 
-    // Lista de colecciones
-    ListView {
-        id: collectionsList
+    // Contenedor principal con RowLayout para separar lista y scrollbar
+    Item {
         anchors {
             top: panelTitle.bottom
             left: parent.left
@@ -61,184 +61,203 @@ FocusScope {
             margins: vpx(15)
             topMargin: vpx(25)
         }
-        clip: true
 
-        model: api.collections
-        currentIndex: collectionsPanel.currentIndex
+        RowLayout {
+            id: mainLayout
+            anchors.fill: parent
+            spacing: vpx(8)  // ESPACIO ENTRE LISTA Y SCROLLBAR
 
-        // Asegurar que el item actual sea visible cuando cambia el índice
-        onCurrentIndexChanged: {
-            if (currentIndex >= 0 && currentIndex < api.collections.count) {
-                positionViewAtIndex(currentIndex, ListView.Contain)
-            }
-        }
+            // Lista de colecciones (toma todo el espacio disponible)
+            ListView {
+                id: collectionsList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
 
-        // Forzar visibilidad cuando se completa la carga
-        Component.onCompleted: {
-            console.log("CollectionsPanel loaded, currentIndex:", currentIndex)
-            if (currentIndex >= 0 && currentIndex < api.collections.count) {
-                positionViewAtIndex(currentIndex, ListView.Contain)
-            }
-        }
+                model: api.collections
+                currentIndex: collectionsPanel.currentIndex
 
-        delegate: Item {
-            width: collectionsList.width
-            height: vpx(60)
-
-            // Propiedad para determinar si este item es el actual
-            readonly property bool isCurrent: index === collectionsList.currentIndex
-            readonly property bool panelHasFocus: {
-                if (parent) {
-                    return parent.focus
+                // Asegurar que el item actual sea visible cuando cambia el índice
+                onCurrentIndexChanged: {
+                    if (currentIndex >= 0 && currentIndex < api.collections.count) {
+                        positionViewAtIndex(currentIndex, ListView.Contain)
+                    }
                 }
-                return false
-            }
 
-            Rectangle {
-                id: itemBackground
-                anchors.fill: parent
-                anchors.margins: vpx(2)
+                // Forzar visibilidad cuando se completa la carga
+                Component.onCompleted: {
+                    console.log("CollectionsPanel loaded, currentIndex:", currentIndex)
+                    if (currentIndex >= 0 && currentIndex < api.collections.count) {
+                        positionViewAtIndex(currentIndex, ListView.Contain)
+                    }
+                }
 
-                color: {
-                    // Verificar si este item es el actual
-                    if (isCurrent) {
-                        // Si el panel de colecciones tiene foco global, mostrar azul
-                        if (root.focusedPanel === "collections") {
-                            return accentColor
-                        } else {
-                            // Si otro panel tiene foco, mostrar color de borde
-                            return borderColor
+                delegate: Item {
+                    width: collectionsList.width
+                    height: vpx(60)
+
+                    // Propiedad para determinar si este item es el actual
+                    readonly property bool isCurrent: index === collectionsList.currentIndex
+                    readonly property bool panelHasFocus: {
+                        if (parent) {
+                            return parent.focus
+                        }
+                        return false
+                    }
+
+                    Rectangle {
+                        id: itemBackground
+                        anchors.fill: parent
+                        anchors.margins: vpx(2)
+
+                        color: {
+                            // Verificar si este item es el actual
+                            if (isCurrent) {
+                                // Si el panel de colecciones tiene foco global, mostrar azul
+                                if (root.focusedPanel === "collections") {
+                                    return accentColor
+                                } else {
+                                    // Si otro panel tiene foco, mostrar color de borde
+                                    return borderColor
+                                }
+                            }
+
+                            // Hover solo si el mouse está sobre y no es current
+                            if (mouseArea.containsMouse && mouseArea.pressed === false) {
+                                return "#333333"
+                            }
+
+                            return "transparent"
+                        }
+
+                        radius: vpx(4)
+
+                        // Transición suave del color
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
+
+                        // Imagen de la colección
+                        Image {
+                            id: collectionImage
+                            width: vpx(48)
+                            height: vpx(48)
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                margins: vpx(10)
+                            }
+                            source: modelData.assets.tile || modelData.assets.logo || ""
+                            fillMode: Image.PreserveAspectFit
+                            visible: source.toString() !== ""
+
+                            // Placeholder si no hay imagen
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "#333"
+                                radius: vpx(4)
+                                visible: !collectionImage.visible
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.shortName ? modelData.shortName.substring(0, 2).toUpperCase() : "??"
+                                    color: textColor
+                                    font.family: condensedFontFamily
+                                    font.pixelSize: vpx(16)
+                                    font.bold: true
+                                }
+                            }
+                        }
+
+                        // Nombre de la colección
+                        Text {
+                            id: collectionName
+                            anchors {
+                                left: collectionImage.visible ? collectionImage.right : parent.left
+                                right: gameCount.left
+                                verticalCenter: parent.verticalCenter
+                                margins: vpx(15)
+                            }
+                            text: modelData.name
+                            // Texto blanco si es current (con o sin foco), color normal si no
+                            color: isCurrent ? "#ffffff" : textColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(16)
+                            elide: Text.ElideRight
+
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                        }
+
+                        // Contador de juegos
+                        Text {
+                            id: gameCount
+                            anchors {
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                                margins: vpx(15)
+                            }
+                            text: modelData.games.count
+                            color: isCurrent ? "#ffffff" : secondaryTextColor
+                            font.family: condensedFontFamily
+                            font.pixelSize: vpx(14)
+
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                        }
+
+                        // Mouse/touch area
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+
+                            onClicked: {
+                                root.selectCollectionWithMouse(index)
+                            }
+
+                            // El hover se maneja directamente en la lógica de color del Rectangle
                         }
                     }
+                }
+            }
 
-                    // Hover solo si el mouse está sobre y no es current
-                    if (mouseArea.containsMouse && mouseArea.pressed === false) {
-                        return "#333333"
-                    }
+            // Scrollbar (ancho fijo, se mantiene a la derecha)
+            Rectangle {
+                id: scrollBar
+                Layout.preferredWidth: vpx(6)
+                Layout.fillHeight: true
+                radius: width / 2
+                color: "#555"
+                opacity: collectionsList.moving || collectionsList.flicking ? 0.8 : 0.3
+                visible: collectionsList.contentHeight > collectionsList.height
 
-                    return "transparent"
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
                 }
 
-                radius: vpx(4)
-
-                // Transición suave del color
-                Behavior on color {
-                    ColorAnimation { duration: 150 }
-                }
-
-                // Imagen de la colección
-                Image {
-                    id: collectionImage
-                    width: vpx(48)
-                    height: vpx(48)
+                Rectangle {
+                    id: scrollHandle
                     anchors {
                         left: parent.left
-                        verticalCenter: parent.verticalCenter
-                        margins: vpx(10)
-                    }
-                    source: modelData.assets.tile || modelData.assets.logo || ""
-                    fillMode: Image.PreserveAspectFit
-                    visible: source.toString() !== ""
-
-                    // Placeholder si no hay imagen
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "#333"
-                        radius: vpx(4)
-                        visible: !collectionImage.visible
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: modelData.shortName ? modelData.shortName.substring(0, 2).toUpperCase() : "??"
-                            color: textColor
-                            font.family: condensedFontFamily
-                            font.pixelSize: vpx(16)
-                            font.bold: true
-                        }
-                    }
-                }
-
-                // Nombre de la colección
-                Text {
-                    id: collectionName
-                    anchors {
-                        left: collectionImage.visible ? collectionImage.right : parent.left
-                        right: gameCount.left
-                        verticalCenter: parent.verticalCenter
-                        margins: vpx(15)
-                    }
-                    text: modelData.name
-                    // Texto blanco si es current (con o sin foco), color normal si no
-                    color: isCurrent ? "#ffffff" : textColor
-                    font.family: fontFamily
-                    font.pixelSize: vpx(16)
-                    elide: Text.ElideRight
-
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
-                }
-
-                // Contador de juegos
-                Text {
-                    id: gameCount
-                    anchors {
                         right: parent.right
-                        verticalCenter: parent.verticalCenter
-                        margins: vpx(15)
                     }
-                    text: modelData.games.count
-                    color: isCurrent ? "#ffffff" : secondaryTextColor
-                    font.family: condensedFontFamily
-                    font.pixelSize: vpx(14)
+                    height: Math.max(vpx(30), scrollBar.height * collectionsList.visibleArea.heightRatio)
 
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
+                    // LIMITAR LA POSICIÓN Y PARA QUE NO SE SALGA DEL PADRE
+                    y: Math.min(
+                        Math.max(
+                            0, // Límite superior
+                            collectionsList.visibleArea.yPosition * scrollBar.height
+                        ),
+                        scrollBar.height - scrollHandle.height // Límite inferior
+                    )
+
+                    radius: width / 2
+                    color: accentColor
                 }
-
-                // Mouse/touch area
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-
-                    onClicked: {
-                        root.selectCollectionWithMouse(index)
-                    }
-
-                    // El hover se maneja directamente en la lógica de color del Rectangle
-                }
-            }
-        }
-
-        // Scrollbar
-        Rectangle {
-            id: scrollBar
-            anchors {
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-            }
-            width: vpx(6)
-            radius: width / 2
-            color: "#555"
-            opacity: collectionsList.moving || collectionsList.flicking ? 0.8 : 0.3
-            visible: collectionsList.contentHeight > collectionsList.height
-
-            Behavior on opacity {
-                NumberAnimation { duration: 200 }
-            }
-
-            Rectangle {
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                }
-                height: Math.max(vpx(30), collectionsList.height * collectionsList.visibleArea.heightRatio)
-                y: collectionsList.visibleArea.yPosition * collectionsList.height
-                radius: width / 2
-                color: accentColor
             }
         }
     }
@@ -289,7 +308,7 @@ FocusScope {
         property: "currentIndex"
         value: root.currentCollectionIndex
         when: !root.isRestoringState
-        restoreMode: Binding.RestoreBindingOrValue  // AÑADIR ESTA LÍNEA
+        restoreMode: Binding.RestoreBindingOrValue
     }
 
     // Timer para forzar visibilidad después de la restauración

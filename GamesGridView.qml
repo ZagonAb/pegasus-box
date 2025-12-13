@@ -2,6 +2,8 @@ import QtQuick 2.15
 import SortFilterProxyModel 0.2
 import QtGraphicalEffects 1.12
 import QtQml 2.15
+import QtQuick.Layouts 1.15  // AÑADIDO
+import "utils.js" as Utils
 
 FocusScope {
     id: gamesGridView
@@ -64,9 +66,8 @@ FocusScope {
         }
     }
 
-    // Grid de juegos
-    GridView {
-        id: gamesGrid
+    // Contenedor principal con RowLayout para separar grid y scrollbar
+    Item {
         anchors {
             top: panelTitle.bottom
             left: parent.left
@@ -75,201 +76,216 @@ FocusScope {
             margins: vpx(20)
             topMargin: vpx(30)
         }
-        clip: true
-        cellWidth: width / columns
-        cellHeight: cellWidth * 1.4 // Para incluir texto debajo
 
-        model: gamesProxyModel
-        currentIndex: gamesGridView.currentIndex
+        RowLayout {
+            id: mainLayout
+            anchors.fill: parent
+            spacing: vpx(8)  // ESPACIO ENTRE GRID Y SCROLLBAR
 
-        // Forzar que el juego actual sea visible
-        onCurrentIndexChanged: {
-            if (currentIndex >= 0 && currentIndex < gamesProxyModel.count) {
-                positionViewAtIndex(currentIndex, GridView.Contain)
-            }
-        }
+            // Grid de juegos (toma todo el espacio disponible)
+            GridView {
+                id: gamesGrid
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                cellWidth: width / columns
+                cellHeight: cellWidth * 1.4 // Para incluir texto debajo
 
-        delegate: Item {
-            width: gamesGrid.cellWidth
-            height: gamesGrid.cellHeight
+                model: gamesProxyModel
+                currentIndex: gamesGridView.currentIndex
 
-            // Propiedad para determinar si este item es el actual
-            readonly property bool isCurrent: index === gamesGrid.currentIndex
-            readonly property bool panelHasFocus: {
-                if (parent) {
-                    return parent.focus
+                // Forzar que el juego actual sea visible
+                onCurrentIndexChanged: {
+                    if (currentIndex >= 0 && currentIndex < gamesProxyModel.count) {
+                        positionViewAtIndex(currentIndex, GridView.Contain)
+                    }
                 }
-                return false
-            }
 
-            Rectangle {
-                id: gameItem
-                width: parent.width - vpx(10)
-                height: parent.height - vpx(10)
-                anchors.centerIn: parent
+                delegate: Item {
+                    width: gamesGrid.cellWidth
+                    height: gamesGrid.cellHeight
 
-                color: {
-                    // Verificar si este item es el actual
-                    if (isCurrent) {
-                        // Si el panel de juegos tiene foco global, mostrar azul
-                        if (root.focusedPanel === "games") {
-                            return accentColor
-                        } else {
-                            // Si otro panel tiene foco, mostrar color de borde
-                            return borderColor
+                    // Propiedad para determinar si este item es el actual
+                    readonly property bool isCurrent: index === gamesGrid.currentIndex
+                    readonly property bool panelHasFocus: {
+                        if (parent) {
+                            return parent.focus
                         }
+                        return false
                     }
 
-                    // Hover solo si el mouse está sobre y no es current
-                    if (mouseArea.containsMouse && mouseArea.pressed === false) {
-                        return "#333333"
-                    }
-
-                    return "transparent"
-                }
-
-                radius: vpx(6)
-
-                // Transición suave del color
-                Behavior on color {
-                    ColorAnimation { duration: 150 }
-                }
-
-                Column {
-                    width: parent.width
-                    spacing: vpx(10)
-
-                    // Imagen del juego
                     Rectangle {
-                        width: parent.width
-                        height: width * 0.75
-                        radius: vpx(4)
-                        color: "#222"
+                        id: gameItem
+                        width: parent.width - vpx(10)
+                        height: parent.height - vpx(10)
+                        anchors.centerIn: parent
 
-                        Image {
-                            id: gameImage
-                            anchors.fill: parent
-                            anchors.margins: vpx(2)
-                            source: modelData.assets.boxFront || modelData.assets.logo || ""
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
+                        color: {
+                            // Verificar si este item es el actual
+                            if (isCurrent) {
+                                // Si el panel de juegos tiene foco global, mostrar azul
+                                if (root.focusedPanel === "games") {
+                                    return accentColor
+                                } else {
+                                    // Si otro panel tiene foco, mostrar color de borde
+                                    return borderColor
+                                }
+                            }
 
-                            // Placeholder si no hay imagen
+                            // Hover solo si el mouse está sobre y no es current
+                            if (mouseArea.containsMouse && mouseArea.pressed === false) {
+                                return "#333333"
+                            }
+
+                            return "transparent"
+                        }
+
+                        radius: vpx(6)
+
+                        // Transición suave del color
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: vpx(10)
+
+                            // Imagen del juego
                             Rectangle {
-                                anchors.fill: parent
-                                color: "#333"
-                                visible: gameImage.status !== Image.Ready
+                                width: parent.width
+                                height: width * 0.75
+                                radius: vpx(4)
+                                color: "#222"
 
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
-                                    color: textColor
-                                    font.family: condensedFontFamily
-                                    font.pixelSize: vpx(32)
-                                    font.bold: true
+                                Image {
+                                    id: gameImage
+                                    anchors.fill: parent
+                                    anchors.margins: vpx(2)
+                                    source: modelData.assets.boxFront || modelData.assets.logo || ""
+                                    fillMode: Image.PreserveAspectFit
+                                    asynchronous: true
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: "#333"
+                                        visible: gameImage.status !== Image.Ready
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
+                                            color: textColor
+                                            font.family: condensedFontFamily
+                                            font.pixelSize: vpx(32)
+                                            font.bold: true
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    visible: modelData.favorite
+                                    width: vpx(24)
+                                    height: vpx(24)
+                                    radius: width / 2
+                                    color: "#ffcc00"
+                                    anchors {
+                                        top: parent.top
+                                        right: parent.right
+                                        margins: vpx(5)
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "★"
+                                        color: "#000"
+                                        font.pixelSize: vpx(14)
+                                        font.bold: true
+                                    }
+                                }
+                            }
+
+                            // Título del juego
+                            Text {
+                                id: gameTitle
+                                width: parent.width
+                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                                // Texto blanco si es current (con o sin foco), color normal si no
+                                color: isCurrent ? "#ffffff" : textColor
+                                font.family: fontFamily
+                                font.pixelSize: vpx(14)
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                                maximumLineCount: 2
+                                wrapMode: Text.WordWrap
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
                                 }
                             }
                         }
 
-                        // Indicador de favorito
-                        Rectangle {
-                            visible: modelData.favorite
-                            width: vpx(24)
-                            height: vpx(24)
-                            radius: width / 2
-                            color: "#ffcc00"
-                            anchors {
-                                top: parent.top
-                                right: parent.right
-                                margins: vpx(5)
+                        // Mouse/touch area
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+
+                            onClicked: {
+                                root.selectGameWithMouse(index)
                             }
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "★"
-                                color: "#000"
-                                font.pixelSize: vpx(14)
-                                font.bold: true
+                            // Efecto hover - solo si no es el item actual
+                            onEntered: {
+                                // El color se maneja en la lógica de color del Rectangle
                             }
-                        }
-                    }
 
-                    // Título del juego
-                    Text {
-                        id: gameTitle
-                        width: parent.width
-                        text: modelData.title
-                        // Texto blanco si es current (con o sin foco), color normal si no
-                        color: isCurrent ? "#ffffff" : textColor
-                        font.family: fontFamily
-                        font.pixelSize: vpx(14)
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
-                        maximumLineCount: 2
-                        wrapMode: Text.WordWrap
+                            onExited: {
+                                // El color se maneja en la lógica de color del Rectangle
+                            }
 
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
+                            // Doble click para lanzar
+                            onDoubleClicked: {
+                                if (root.currentGame) {
+                                    root.launchCurrentGame()
+                                }
+                            }
                         }
                     }
                 }
-
-                // Mouse/touch area
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-
-                    onClicked: {
-                        root.selectGameWithMouse(index)
-                    }
-
-                    // Efecto hover - solo si no es el item actual
-                    onEntered: {
-                        // El color se maneja en la lógica de color del Rectangle
-                    }
-
-                    onExited: {
-                        // El color se maneja en la lógica de color del Rectangle
-                    }
-
-                    // Doble click para lanzar
-                    onDoubleClicked: {
-                        if (root.currentGame) {
-                            root.launchCurrentGame()
-                        }
-                    }
-                }
-            }
-        }
-
-        // Scrollbar
-        Rectangle {
-            id: scrollBar
-            anchors {
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-            }
-            width: vpx(6)
-            radius: width / 2
-            color: "#555"
-            opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
-            visible: gamesGrid.contentHeight > gamesGrid.height
-
-            Behavior on opacity {
-                NumberAnimation { duration: 200 }
             }
 
             Rectangle {
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                }
-                height: Math.max(vpx(30), gamesGrid.height * gamesGrid.visibleArea.heightRatio)
-                y: gamesGrid.visibleArea.yPosition * gamesGrid.height
+                id: scrollBar
+                Layout.preferredWidth: vpx(6)
+                Layout.fillHeight: true
                 radius: width / 2
-                color: accentColor
+                color: "#555"
+                opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
+                visible: gamesGrid.contentHeight > gamesGrid.height
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
+                }
+
+                Rectangle {
+                    id: scrollHandle
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                    height: Math.max(vpx(30), scrollBar.height * gamesGrid.visibleArea.heightRatio)
+
+                    y: Math.min(
+                        Math.max(
+                            0, // Límite superior
+                            gamesGrid.visibleArea.yPosition * scrollBar.height
+                        ),
+                        scrollBar.height - scrollHandle.height
+                    )
+
+                    radius: width / 2
+                    color: accentColor
+                }
             }
         }
     }
