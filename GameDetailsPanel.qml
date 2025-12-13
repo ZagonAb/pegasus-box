@@ -6,6 +6,15 @@ import "utils.js" as Utils
 Item {
     id: gameDetailsPanel
 
+    property var displayGame: {
+        // Prioridad: juego del grid filtrado
+        if (gamesGridView && gamesGridView.currentFilteredGame) {
+            return gamesGridView.currentFilteredGame
+        }
+        // Fallback: juego actual de root
+        return displayGame
+    }
+
     Rectangle {
         id: panelBackground
         anchors.fill: parent
@@ -68,7 +77,7 @@ Item {
                 Image {
                     id: gameImage
                     anchors.fill: parent
-                    source: root.currentGame ? root.currentGame.assets.screenshot || root.currentGame.assets.logo || "" : ""
+                    source: displayGame ? displayGame.assets.screenshot || displayGame.assets.logo || "" : ""
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
 
@@ -91,7 +100,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: root.currentGame ? Utils.cleanGameTitle(root.currentGame.title) : "Select a game"
+                text: displayGame ? Utils.cleanGameTitle(displayGame.title) : "Select a game"
                 color: textColor
                 font.family: fontFamily
                 font.pixelSize: vpx(22)
@@ -99,11 +108,29 @@ Item {
                 wrapMode: Text.WordWrap
             }
 
+            Text {
+                id: filterIndicator
+                anchors {
+                    top: panelTitle.bottom
+                    left: parent.left
+                    right: parent.right
+                    margins: vpx(20)
+                    topMargin: vpx(5)
+                }
+                text: gamesGridView && gamesGridView.gamesFilter &&
+                gamesGridView.gamesFilter.currentFilter !== "All Games" ?
+                "Filter: " + gamesGridView.gamesFilter.currentFilter : ""
+                color: accentColor
+                font.family: condensedFontFamily
+                font.pixelSize: vpx(14)
+                visible: text !== ""
+            }
+
             Column {
                 id: basicInfoColumn
                 width: parent.width
                 spacing: vpx(12)
-                visible: root.currentGame
+                visible: displayGame
 
                 Text {
                     text: "BASIC INFO"
@@ -115,46 +142,46 @@ Item {
 
                 DetailRow {
                     label: "Year:"
-                    value: root.currentGame && root.currentGame.releaseYear > 0 ?
-                    root.currentGame.releaseYear.toString() : "Unknown"
+                    value: displayGame && displayGame.releaseYear > 0 ?
+                    displayGame.releaseYear.toString() : "Unknown"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Developer:"
-                    value: root.currentGame && root.currentGame.developer ?
-                    root.currentGame.developer : "Unknown"
+                    value: displayGame && displayGame.developer ?
+                    displayGame.developer : "Unknown"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Publisher:"
-                    value: root.currentGame && root.currentGame.publisher ?
-                    root.currentGame.publisher : "Unknown"
+                    value: displayGame && displayGame.publisher ?
+                    displayGame.publisher : "Unknown"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Genre:"
-                    value: root.currentGame && root.currentGame.genre ?
-                    root.currentGame.genre : "Unknown"
+                    value: displayGame && displayGame.genre ?
+                    displayGame.genre : "Unknown"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Players:"
-                    value: root.currentGame ? root.currentGame.players + "P" : "1P"
+                    value: displayGame ? displayGame.players + "P" : "1P"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Rating:"
-                    value: root.currentGame ? Math.round(root.currentGame.rating * 100) + "%" : "0%"
+                    value: displayGame ? Math.round(displayGame.rating * 100) + "%" : "0%"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                     showDivider: true
@@ -164,7 +191,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: vpx(8)
-                visible: root.currentGame && root.currentGame.description
+                visible: displayGame && displayGame.description
 
                 Text {
                     text: "DESCRIPTION"
@@ -193,7 +220,7 @@ Item {
                             Text {
                                 id: descripText
                                 width: parent.width
-                                text: root.currentGame ? root.currentGame.description : ""
+                                text: displayGame ? displayGame.description : ""
                                 wrapMode: Text.WordWrap
                                 lineHeight: 1.4
                                 font {
@@ -211,7 +238,7 @@ Item {
                 id: statsColumn
                 width: parent.width
                 spacing: vpx(12)
-                visible: root.currentGame && (root.currentGame.playCount > 0 || root.currentGame.playTime > 0)
+                visible: displayGame && (displayGame.playCount > 0 || displayGame.playTime > 0)
 
                 Text {
                     text: "STATISTICS"
@@ -223,22 +250,22 @@ Item {
 
                 DetailRow {
                     label: "Play Count:"
-                    value: root.currentGame ? root.currentGame.playCount.toString() : "0"
+                    value: displayGame ? displayGame.playCount.toString() : "0"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Play Time:"
-                    value: root.currentGame ? Utils.formatPlayTime(root.currentGame.playTime) : "0h 0m"
+                    value: displayGame ? Utils.formatPlayTime(displayGame.playTime) : "0h 0m"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }
 
                 DetailRow {
                     label: "Last Played:"
-                    value: root.currentGame && root.currentGame.lastPlayed ?
-                    Utils.formatDate(root.currentGame.lastPlayed) : "Never"
+                    value: displayGame && displayGame.lastPlayed ?
+                    Utils.formatDate(displayGame.lastPlayed) : "Never"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                     showDivider: true
@@ -251,7 +278,7 @@ Item {
                 height: vpx(50)
                 radius: vpx(6)
                 color: accentColor
-                visible: root.currentGame
+                visible: displayGame
 
                 Text {
                     anchors.centerIn: parent
@@ -266,7 +293,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: {
-                        if (root.currentGame) {
+                        if (displayGame) {
                             root.launchCurrentGame()
                         }
                     }

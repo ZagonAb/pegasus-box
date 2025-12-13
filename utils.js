@@ -158,3 +158,208 @@ function cleanGameTitle(title) {
 
         return cleanedTitle.trim();
 }
+
+function getFilterAvailability(collection) {
+    if (!collection || !collection.games || collection.games.count === 0) {
+        return {
+            favorites: false,
+            lastPlayed: false,
+            topRating: false,
+            year: false,
+            categories: false
+        }
+    }
+
+    var hasFavorites = false
+    var hasLastPlayed = false
+    var hasRating = false
+    var hasYear = false
+
+    // Contadores para debug
+    var totalGames = collection.games.count
+    var favoritesCount = 0
+    var lastPlayedCount = 0
+    var ratingCount = 0
+    var yearCount = 0
+
+    for (var i = 0; i < totalGames; i++) {
+        var game = collection.games.get(i)
+        if (!game) continue
+
+            if (game.favorite) {
+                hasFavorites = true
+                favoritesCount++
+            }
+
+            if (game.lastPlayed && game.lastPlayed.getTime) {
+                var time = game.lastPlayed.getTime()
+                if (!isNaN(time) && time > 0) {
+                    hasLastPlayed = true
+                    lastPlayedCount++
+                }
+            }
+
+            if (game.rating && game.rating > 0) {
+                hasRating = true
+                ratingCount++
+            }
+
+            if (game.releaseYear && game.releaseYear > 0) {
+                hasYear = true
+                yearCount++
+            }
+    }
+
+    console.log("Filter availability check for", collection.name + ":")
+    console.log("- Total games:", totalGames)
+    console.log("- Favorites:", favoritesCount, "available:", hasFavorites)
+    console.log("- Last played:", lastPlayedCount, "available:", hasLastPlayed)
+    console.log("- Rating:", ratingCount, "available:", hasRating)
+    console.log("- Year:", yearCount, "available:", hasYear)
+
+    return {
+        favorites: hasFavorites,
+        lastPlayed: hasLastPlayed,
+        topRating: hasRating,
+        year: hasYear,
+        categories: false
+    }
+}
+
+function applyGameFilter(games, filterType) {
+    if (!games || games.count === 0) return games
+
+        switch(filterType) {
+            case "Favorites":
+                // Filtrar solo favoritos
+                return filterGamesByFavorite(games, true)
+            case "Last Played":
+                // Ordenar por último jugado
+                return sortGamesByLastPlayed(games)
+            case "Top Rating":
+                // Ordenar por rating
+                return sortGamesByRating(games)
+            case "Year":
+                // Ordenar por año
+                return sortGamesByYear(games)
+            case "All Games":
+            default:
+                // Ordenar alfabéticamente
+                return sortGamesAlphabetically(games)
+        }
+}
+
+function filterGamesByFavorite(games, favoriteOnly) {
+    var result = []
+    for (var i = 0; i < games.count; i++) {
+        var game = games.get(i)
+        if (game && game.favorite === favoriteOnly) {
+            result.push(game)
+        }
+    }
+    return result
+}
+
+function sortGamesByLastPlayed(games) {
+    var gameArray = []
+    for (var i = 0; i < games.count; i++) {
+        var game = games.get(i)
+        if (game && game.lastPlayed && game.lastPlayed.getTime) {
+            gameArray.push(game)
+        }
+    }
+
+    // Ordenar por fecha (más reciente primero)
+    gameArray.sort(function(a, b) {
+        var timeA = a.lastPlayed.getTime()
+        var timeB = b.lastPlayed.getTime()
+        return timeB - timeA
+    })
+
+    return gameArray
+}
+
+function sortGamesByRating(games) {
+    var gameArray = []
+    for (var i = 0; i < games.count; i++) {
+        var game = games.get(i)
+        if (game) {
+            gameArray.push(game)
+        }
+    }
+
+    // Ordenar por rating (más alto primero)
+    gameArray.sort(function(a, b) {
+        return b.rating - a.rating
+    })
+
+    return gameArray
+}
+
+function sortGamesByYear(games) {
+    var gameArray = []
+    for (var i = 0; i < games.count; i++) {
+        var game = games.get(i)
+        if (game && game.releaseYear > 0) {
+            gameArray.push(game)
+        }
+    }
+
+    // Ordenar por año (más reciente primero)
+    gameArray.sort(function(a, b) {
+        return b.releaseYear - a.releaseYear
+    })
+
+    return gameArray
+}
+
+function sortGamesAlphabetically(games) {
+    var gameArray = []
+    for (var i = 0; i < games.count; i++) {
+        var game = games.get(i)
+        if (game) {
+            gameArray.push(game)
+        }
+    }
+
+    // Ordenar alfabéticamente por título
+    gameArray.sort(function(a, b) {
+        var titleA = a.title || ""
+        var titleB = b.title || ""
+        return titleA.localeCompare(titleB)
+    })
+
+    return gameArray
+}
+
+function countFavorites(games) {
+    if (!games || games.count === 0) return 0
+
+        var count = 0
+        for (var i = 0; i < games.count; i++) {
+            var game = games.get(i)
+            if (game && game.favorite) {
+                count++
+            }
+        }
+        return count
+}
+
+function hasRecentlyPlayed(games) {
+    if (!games || games.count === 0) return false
+
+        // Considerar "recientemente jugado" si se jugó en los últimos 30 días
+        var thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+        for (var i = 0; i < games.count; i++) {
+            var game = games.get(i)
+            if (game && game.lastPlayed && game.lastPlayed.getTime) {
+                var lastPlayedTime = game.lastPlayed.getTime()
+                if (!isNaN(lastPlayedTime) && lastPlayedTime > thirtyDaysAgo.getTime()) {
+                    return true
+                }
+            }
+        }
+        return false
+}

@@ -2,7 +2,7 @@ import QtQuick 2.15
 import SortFilterProxyModel 0.2
 import QtGraphicalEffects 1.12
 import QtQml 2.15
-import QtQuick.Layouts 1.15  // AÑADIDO
+import QtQuick.Layouts 1.15
 import "utils.js" as Utils
 
 FocusScope {
@@ -15,14 +15,19 @@ FocusScope {
     // Propiedad para detectar cambios en la colección
     property var currentCollection: root.currentCollection
 
-    // Proxy model para ordenar/filtrar
-    SortFilterProxyModel {
-        id: gamesProxyModel
+    property var currentFilteredGame: {
+        if (gamesFilter.filteredModel && currentIndex >= 0 &&
+            currentIndex < gamesFilter.filteredModel.count) {
+            return gamesFilter.filteredModel.get(currentIndex)
+            }
+            return null
+    }
+
+    signal currentGameChanged(var game)
+
+    GamesFilter {
+        id: gamesFilter
         sourceModel: root.currentCollection ? root.currentCollection.games : null
-        sorters: RoleSorter {
-            roleName: "title"
-            sortOrder: Qt.AscendingOrder
-        }
     }
 
     // Fondo del panel
@@ -80,7 +85,7 @@ FocusScope {
         RowLayout {
             id: mainLayout
             anchors.fill: parent
-            spacing: vpx(8)  // ESPACIO ENTRE GRID Y SCROLLBAR
+            spacing: vpx(8)
 
             // Grid de juegos (toma todo el espacio disponible)
             GridView {
@@ -89,14 +94,14 @@ FocusScope {
                 Layout.fillHeight: true
                 clip: true
                 cellWidth: width / columns
-                cellHeight: cellWidth * 1.4 // Para incluir texto debajo
+                cellHeight: cellWidth * 1.4
 
-                model: gamesProxyModel
+                model: gamesFilter.filteredModel  // Usar el modelo filtrado
                 currentIndex: gamesGridView.currentIndex
 
                 // Forzar que el juego actual sea visible
                 onCurrentIndexChanged: {
-                    if (currentIndex >= 0 && currentIndex < gamesProxyModel.count) {
+                    if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
                         positionViewAtIndex(currentIndex, GridView.Contain)
                     }
                 }
@@ -209,7 +214,6 @@ FocusScope {
                                 id: gameTitle
                                 width: parent.width
                                 text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
-                                // Texto blanco si es current (con o sin foco), color normal si no
                                 color: isCurrent ? "#ffffff" : textColor
                                 font.family: fontFamily
                                 font.pixelSize: vpx(14)
@@ -234,16 +238,6 @@ FocusScope {
                                 root.selectGameWithMouse(index)
                             }
 
-                            // Efecto hover - solo si no es el item actual
-                            onEntered: {
-                                // El color se maneja en la lógica de color del Rectangle
-                            }
-
-                            onExited: {
-                                // El color se maneja en la lógica de color del Rectangle
-                            }
-
-                            // Doble click para lanzar
                             onDoubleClicked: {
                                 if (root.currentGame) {
                                     root.launchCurrentGame()
@@ -277,7 +271,7 @@ FocusScope {
 
                     y: Math.min(
                         Math.max(
-                            0, // Límite superior
+                            0,
                             gamesGrid.visibleArea.yPosition * scrollBar.height
                         ),
                         scrollBar.height - scrollHandle.height
@@ -298,7 +292,7 @@ FocusScope {
             right: parent.right
             margins: vpx(20)
         }
-        text: gamesProxyModel.count + " GAMES"
+        text: gamesFilter.filteredModel.count + " GAMES"
         color: secondaryTextColor
         font.family: condensedFontFamily
         font.pixelSize: vpx(14)
@@ -312,27 +306,23 @@ FocusScope {
         }
         else if (api.keys.isCancel(event)) {
             event.accepted = true
-            // Volver al panel de colecciones
             root.switchToCollectionsPanel()
         }
         else if (event.key === Qt.Key_Left) {
             event.accepted = true
-            // Si estamos en el índice 0 (primera columna), volver a collections
             if (currentIndex % columns === 0 && currentIndex < columns) {
                 root.switchToCollectionsPanel()
             } else if (currentIndex > 0) {
                 currentIndex--
                 root.currentGameIndex = currentIndex
-                // Forzar actualización de hover
                 gamesGrid.forceLayout()
             }
         }
         else if (event.key === Qt.Key_Right) {
             event.accepted = true
-            if (currentIndex < gamesProxyModel.count - 1) {
+            if (currentIndex < gamesFilter.filteredModel.count - 1) {
                 currentIndex++
                 root.currentGameIndex = currentIndex
-                // Forzar actualización de hover
                 gamesGrid.forceLayout()
             }
         }
@@ -341,16 +331,14 @@ FocusScope {
             if (currentIndex - columns >= 0) {
                 currentIndex -= columns
                 root.currentGameIndex = currentIndex
-                // Forzar actualización de hover
                 gamesGrid.forceLayout()
             }
         }
         else if (event.key === Qt.Key_Down) {
             event.accepted = true
-            if (currentIndex + columns < gamesProxyModel.count) {
+            if (currentIndex + columns < gamesFilter.filteredModel.count) {
                 currentIndex += columns
                 root.currentGameIndex = currentIndex
-                // Forzar actualización de hover
                 gamesGrid.forceLayout()
             }
         }
@@ -364,19 +352,18 @@ FocusScope {
         }
     }
 
-    // Detectar cuando cambia la colección - RESET a índice 0
+    // Detectar cuando cambia la colección
     onCurrentCollectionChanged: {
-        console.log("Collection changed in grid, resetting to index 0")
+        console.log("GamesGridView: Collection changed, resetting filter")
         if (currentCollection) {
+            // Resetear el filtro
+            gamesFilter.resetFilter()
             currentIndex = 0
-            // Asegurar que root también se resetee
             root.currentGameIndex = 0
-            // Forzar actualización visual
             gamesGrid.forceLayout()
         }
     }
 
-    // Sincronizar con root.currentGameIndex usando Connections
     Connections {
         target: root
         enabled: !root.isRestoringState
@@ -384,71 +371,73 @@ FocusScope {
         function onCurrentGameIndexChanged() {
             console.log("Root game index changed to:", root.currentGameIndex)
 
-            // Validar que tenemos una colección y el índice es válido
-            if (currentCollection &&
+            // Actualizar root.currentGame basado en el modelo filtrado
+            if (gamesFilter.filteredModel &&
                 root.currentGameIndex >= 0 &&
-                root.currentGameIndex < gamesProxyModel.count) {
+                root.currentGameIndex < gamesFilter.filteredModel.count) {
 
-                // Solo actualizar si es diferente
                 if (currentIndex !== root.currentGameIndex) {
                     console.log("Updating grid index to:", root.currentGameIndex)
                     currentIndex = root.currentGameIndex
                 }
-                }
-        }
 
-        function onIsRestoringStateChanged() {
-            if (!root.isRestoringState &&
-                currentCollection &&
-                root.currentGameIndex >= 0 &&
-                root.currentGameIndex < gamesProxyModel.count &&
-                currentIndex !== root.currentGameIndex) {
-
-                console.log("Restoration finished, syncing grid to index:", root.currentGameIndex)
-                currentIndex = root.currentGameIndex
+                // Forzar actualización del juego actual
+                root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
                 }
         }
     }
 
-    // Forzar visibilidad del item seleccionado cuando se carga
-    Component.onCompleted: {
-        console.log("GamesGridView loaded, currentIndex:", currentIndex)
-
-        // Sincronizar con root.currentGameIndex después de cargar
-        if (!root.isRestoringState &&
-            currentCollection &&
-            root.currentGameIndex >= 0 &&
-            root.currentGameIndex < gamesProxyModel.count &&
-            currentIndex !== root.currentGameIndex) {
-
-            console.log("Component loaded, syncing to root index:", root.currentGameIndex)
-            currentIndex = root.currentGameIndex
-            }
-
-            // Forzar visibilidad
-            if (currentIndex >= 0 && currentIndex < gamesProxyModel.count) {
-                gamesGrid.positionViewAtIndex(currentIndex, GridView.Contain)
-            }
+    function resetAllFilters() {
+        console.log("GamesGridView: Resetting all filters")
+        resetFilter()
     }
 
-    // Función para sincronizar manualmente (llamada desde theme.qml)
-    function syncWithRootIndex() {
-        if (!root.isRestoringState &&
-            currentCollection &&
-            root.currentGameIndex >= 0 &&
-            root.currentGameIndex < gamesProxyModel.count &&
-            currentIndex !== root.currentGameIndex) {
+    function updateFilter(filterType) {
+        console.log("GamesGridView: Updating filter to", filterType)
+        gamesFilter.updateFilter(filterType)
 
-            console.log("Manual sync: Setting grid index to", root.currentGameIndex)
-            currentIndex = root.currentGameIndex
-            return true
-            }
-            return false
+        // Resetear índice al cambiar filtro
+        currentIndex = 0
+        root.currentGameIndex = 0
+
+        // Actualizar el juego actual basado en el nuevo filtro
+        if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
+            root.currentGame = gamesFilter.filteredModel.get(0)
+        } else {
+            root.currentGame = null
+        }
+
+        // Asegurar visibilidad
+        ensureCurrentVisible()
+    }
+
+    function updateSearch(searchText) {
+        console.log("GamesGridView: Updating search to", searchText)
+        gamesFilter.updateSearch(searchText)
+
+        // Resetear índice al buscar
+        currentIndex = 0
+        root.currentGameIndex = 0
+
+        // Asegurar visibilidad
+        ensureCurrentVisible()
+    }
+
+    function resetFilter() {
+        console.log("GamesGridView: Resetting filter")
+        gamesFilter.resetFilter()
+
+        // Resetear índice
+        currentIndex = 0
+        root.currentGameIndex = 0
+
+        // Asegurar visibilidad
+        ensureCurrentVisible()
     }
 
     // Función para forzar visibilidad del índice actual
     function ensureCurrentVisible() {
-        if (currentIndex >= 0 && currentIndex < gamesProxyModel.count) {
+        if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
             gamesGrid.positionViewAtIndex(currentIndex, GridView.Contain)
         }
     }
@@ -456,11 +445,11 @@ FocusScope {
     // Funciones de navegación por páginas
     function nextPage() {
         var nextIndex = currentIndex + (columns * rows)
-        if (nextIndex < gamesProxyModel.count) {
+        if (nextIndex < gamesFilter.filteredModel.count) {
             currentIndex = nextIndex
             root.currentGameIndex = currentIndex
         } else {
-            currentIndex = gamesProxyModel.count - 1
+            currentIndex = gamesFilter.filteredModel.count - 1
             root.currentGameIndex = currentIndex
         }
     }
@@ -474,5 +463,9 @@ FocusScope {
             currentIndex = 0
             root.currentGameIndex = currentIndex
         }
+    }
+
+    Component.onCompleted: {
+        console.log("GamesGridView loaded with filter system")
     }
 }
