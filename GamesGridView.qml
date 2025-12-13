@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import SortFilterProxyModel 0.2
 import QtGraphicalEffects 1.12
+import QtQml 2.15
 
 FocusScope {
     id: gamesGridView
@@ -29,7 +30,7 @@ FocusScope {
         color: panelColor
         radius: vpx(8)
         border.width: vpx(2)
-        border.color: borderColor
+        border.color: focus ? accentColor : borderColor
 
         // Efecto de sombra
         layer.enabled: true
@@ -39,6 +40,11 @@ FocusScope {
             radius: vpx(12)
             samples: 25
             color: "#40000000"
+        }
+
+        // Transición suave del borde
+        Behavior on border.color {
+            ColorAnimation { duration: 200 }
         }
     }
 
@@ -87,13 +93,47 @@ FocusScope {
             width: gamesGrid.cellWidth
             height: gamesGrid.cellHeight
 
+            // Propiedad para determinar si este item es el actual
+            readonly property bool isCurrent: index === gamesGrid.currentIndex
+            readonly property bool panelHasFocus: {
+                if (parent) {
+                    return parent.focus
+                }
+                return false
+            }
+
             Rectangle {
                 id: gameItem
                 width: parent.width - vpx(10)
                 height: parent.height - vpx(10)
                 anchors.centerIn: parent
-                color: index === gamesGrid.currentIndex ? accentColor : "transparent"
+
+                color: {
+                    // Verificar si este item es el actual
+                    if (isCurrent) {
+                        // Si el panel de juegos tiene foco global, mostrar azul
+                        if (root.focusedPanel === "games") {
+                            return accentColor
+                        } else {
+                            // Si otro panel tiene foco, mostrar color de borde
+                            return borderColor
+                        }
+                    }
+
+                    // Hover solo si el mouse está sobre y no es current
+                    if (mouseArea.containsMouse && mouseArea.pressed === false) {
+                        return "#333333"
+                    }
+
+                    return "transparent"
+                }
+
                 radius: vpx(6)
+
+                // Transición suave del color
+                Behavior on color {
+                    ColorAnimation { duration: 150 }
+                }
 
                 Column {
                     width: parent.width
@@ -156,38 +196,41 @@ FocusScope {
 
                     // Título del juego
                     Text {
+                        id: gameTitle
                         width: parent.width
                         text: modelData.title
-                        color: index === gamesGrid.currentIndex ? "#ffffff" : textColor
+                        // Texto blanco si es current (con o sin foco), color normal si no
+                        color: isCurrent ? "#ffffff" : textColor
                         font.family: fontFamily
                         font.pixelSize: vpx(14)
                         elide: Text.ElideRight
                         horizontalAlignment: Text.AlignHCenter
                         maximumLineCount: 2
                         wrapMode: Text.WordWrap
+
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
                     }
                 }
 
                 // Mouse/touch area
                 MouseArea {
+                    id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
+
                     onClicked: {
-                        gamesGrid.currentIndex = index
-                        gamesGridView.currentIndex = index
-                        root.currentGameIndex = index
+                        root.selectGameWithMouse(index)
                     }
 
-                    // Efecto hover
+                    // Efecto hover - solo si no es el item actual
                     onEntered: {
-                        if (index !== gamesGrid.currentIndex) {
-                            parent.color = "#333333"
-                        }
+                        // El color se maneja en la lógica de color del Rectangle
                     }
+
                     onExited: {
-                        if (index !== gamesGrid.currentIndex) {
-                            parent.color = "transparent"
-                        }
+                        // El color se maneja en la lógica de color del Rectangle
                     }
 
                     // Doble click para lanzar
@@ -249,23 +292,59 @@ FocusScope {
     Keys.onPressed: {
         if (api.keys.isAccept(event)) {
             event.accepted = true
-            if (root.currentGame) root.currentGame.launch()
+            if (root.currentGame) root.launchCurrentGame()
+        }
+        else if (api.keys.isCancel(event)) {
+            event.accepted = true
+            // Volver al panel de colecciones
+            root.switchToCollectionsPanel()
         }
         else if (event.key === Qt.Key_Left) {
             event.accepted = true
-            if (currentIndex > 0) currentIndex--
+            // Si estamos en el índice 0 (primera columna), volver a collections
+            if (currentIndex % columns === 0 && currentIndex < columns) {
+                root.switchToCollectionsPanel()
+            } else if (currentIndex > 0) {
+                currentIndex--
+                root.currentGameIndex = currentIndex
+                // Forzar actualización de hover
+                gamesGrid.forceLayout()
+            }
         }
         else if (event.key === Qt.Key_Right) {
             event.accepted = true
-            if (currentIndex < gamesProxyModel.count - 1) currentIndex++
+            if (currentIndex < gamesProxyModel.count - 1) {
+                currentIndex++
+                root.currentGameIndex = currentIndex
+                // Forzar actualización de hover
+                gamesGrid.forceLayout()
+            }
         }
         else if (event.key === Qt.Key_Up) {
             event.accepted = true
-            if (currentIndex - columns >= 0) currentIndex -= columns
+            if (currentIndex - columns >= 0) {
+                currentIndex -= columns
+                root.currentGameIndex = currentIndex
+                // Forzar actualización de hover
+                gamesGrid.forceLayout()
+            }
         }
         else if (event.key === Qt.Key_Down) {
             event.accepted = true
-            if (currentIndex + columns < gamesProxyModel.count) currentIndex += columns
+            if (currentIndex + columns < gamesProxyModel.count) {
+                currentIndex += columns
+                root.currentGameIndex = currentIndex
+                // Forzar actualización de hover
+                gamesGrid.forceLayout()
+            }
+        }
+        else if (api.keys.isNextPage(event)) {
+            event.accepted = true
+            nextPage()
+        }
+        else if (api.keys.isPrevPage(event)) {
+            event.accepted = true
+            previousPage()
         }
     }
 
@@ -275,9 +354,9 @@ FocusScope {
         if (currentCollection) {
             currentIndex = 0
             // Asegurar que root también se resetee
-            if (root.currentGameIndex !== 0) {
-                root.currentGameIndex = 0
-            }
+            root.currentGameIndex = 0
+            // Forzar actualización visual
+            gamesGrid.forceLayout()
         }
     }
 
@@ -363,8 +442,10 @@ FocusScope {
         var nextIndex = currentIndex + (columns * rows)
         if (nextIndex < gamesProxyModel.count) {
             currentIndex = nextIndex
+            root.currentGameIndex = currentIndex
         } else {
             currentIndex = gamesProxyModel.count - 1
+            root.currentGameIndex = currentIndex
         }
     }
 
@@ -372,8 +453,10 @@ FocusScope {
         var prevIndex = currentIndex - (columns * rows)
         if (prevIndex >= 0) {
             currentIndex = prevIndex
+            root.currentGameIndex = currentIndex
         } else {
             currentIndex = 0
+            root.currentGameIndex = currentIndex
         }
     }
 }

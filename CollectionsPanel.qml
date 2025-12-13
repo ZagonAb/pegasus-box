@@ -1,8 +1,9 @@
 import QtQuick 2.15
+import QtQml 2.15
 import SortFilterProxyModel 0.2
 import QtGraphicalEffects 1.12
 
-Item {
+FocusScope {
     id: collectionsPanel
 
     property int currentIndex: 0
@@ -15,7 +16,7 @@ Item {
         color: panelColor
         radius: vpx(8)
         border.width: vpx(2)
-        border.color: borderColor
+        border.color: focus ? accentColor : borderColor
 
         // Efecto de sombra
         layer.enabled: true
@@ -25,6 +26,11 @@ Item {
             radius: vpx(12)
             samples: 25
             color: "#40000000"
+        }
+
+        // Transición suave del borde
+        Behavior on border.color {
+            ColorAnimation { duration: 200 }
         }
     }
 
@@ -60,12 +66,14 @@ Item {
         model: api.collections
         currentIndex: collectionsPanel.currentIndex
 
+        // Asegurar que el item actual sea visible cuando cambia el índice
         onCurrentIndexChanged: {
             if (currentIndex >= 0 && currentIndex < api.collections.count) {
                 positionViewAtIndex(currentIndex, ListView.Contain)
             }
         }
 
+        // Forzar visibilidad cuando se completa la carga
         Component.onCompleted: {
             console.log("CollectionsPanel loaded, currentIndex:", currentIndex)
             if (currentIndex >= 0 && currentIndex < api.collections.count) {
@@ -77,11 +85,46 @@ Item {
             width: collectionsList.width
             height: vpx(60)
 
+            // Propiedad para determinar si este item es el actual
+            readonly property bool isCurrent: index === collectionsList.currentIndex
+            readonly property bool panelHasFocus: {
+                if (parent) {
+                    return parent.focus
+                }
+                return false
+            }
+
             Rectangle {
+                id: itemBackground
                 anchors.fill: parent
                 anchors.margins: vpx(2)
-                color: index === collectionsList.currentIndex ? accentColor : "transparent"
+
+                color: {
+                    // Verificar si este item es el actual
+                    if (isCurrent) {
+                        // Si el panel de colecciones tiene foco global, mostrar azul
+                        if (root.focusedPanel === "collections") {
+                            return accentColor
+                        } else {
+                            // Si otro panel tiene foco, mostrar color de borde
+                            return borderColor
+                        }
+                    }
+
+                    // Hover solo si el mouse está sobre y no es current
+                    if (mouseArea.containsMouse && mouseArea.pressed === false) {
+                        return "#333333"
+                    }
+
+                    return "transparent"
+                }
+
                 radius: vpx(4)
+
+                // Transición suave del color
+                Behavior on color {
+                    ColorAnimation { duration: 150 }
+                }
 
                 // Imagen de la colección
                 Image {
@@ -117,6 +160,7 @@ Item {
 
                 // Nombre de la colección
                 Text {
+                    id: collectionName
                     anchors {
                         left: collectionImage.visible ? collectionImage.right : parent.left
                         right: gameCount.left
@@ -124,10 +168,15 @@ Item {
                         margins: vpx(15)
                     }
                     text: modelData.name
-                    color: index === collectionsList.currentIndex ? "#ffffff" : textColor
+                    // Texto blanco si es current (con o sin foco), color normal si no
+                    color: isCurrent ? "#ffffff" : textColor
                     font.family: fontFamily
                     font.pixelSize: vpx(16)
                     elide: Text.ElideRight
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
                 }
 
                 // Contador de juegos
@@ -139,32 +188,26 @@ Item {
                         margins: vpx(15)
                     }
                     text: modelData.games.count
-                    color: index === collectionsList.currentIndex ? "#ffffff" : secondaryTextColor
+                    color: isCurrent ? "#ffffff" : secondaryTextColor
                     font.family: condensedFontFamily
                     font.pixelSize: vpx(14)
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
                 }
 
                 // Mouse/touch area
                 MouseArea {
+                    id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
+
                     onClicked: {
-                        collectionsList.currentIndex = index
-                        collectionsPanel.currentIndex = index
-                        root.selectCollection(index)
+                        root.selectCollectionWithMouse(index)
                     }
 
-                    // Efecto hover
-                    onEntered: {
-                        if (index !== collectionsList.currentIndex) {
-                            parent.color = "#333333"
-                        }
-                    }
-                    onExited: {
-                        if (index !== collectionsList.currentIndex) {
-                            parent.color = "transparent"
-                        }
-                    }
+                    // El hover se maneja directamente en la lógica de color del Rectangle
                 }
             }
         }
@@ -204,30 +247,55 @@ Item {
     Keys.onPressed: {
         if (api.keys.isAccept(event)) {
             event.accepted = true
+            // Cambiar a la colección y pasar al panel de juegos
             root.selectCollection(currentIndex)
+            root.switchToGamesPanel()
         }
         else if (event.key === Qt.Key_Up) {
             event.accepted = true
-            if (currentIndex > 0) currentIndex--
+            if (currentIndex > 0) {
+                currentIndex--
+                root.currentCollectionIndex = currentIndex
+                // Forzar actualización de hover
+                collectionsList.forceLayout()
+            }
         }
         else if (event.key === Qt.Key_Down) {
             event.accepted = true
-            if (currentIndex < api.collections.count - 1) currentIndex++
+            if (currentIndex < api.collections.count - 1) {
+                currentIndex++
+                root.currentCollectionIndex = currentIndex
+                // Forzar actualización de hover
+                collectionsList.forceLayout()
+            }
+        }
+        else if (event.key === Qt.Key_Right) {
+            event.accepted = true
+            // Pasar al panel de juegos
+            root.switchToGamesPanel()
+        }
+        else if (api.keys.isPageUp(event)) {
+            event.accepted = true
+            previousItem()
+        }
+        else if (api.keys.isPageDown(event)) {
+            event.accepted = true
+            nextItem()
         }
     }
 
-    // Sincronizar con root.currentCollectionIndex
     Binding {
         target: collectionsPanel
         property: "currentIndex"
         value: root.currentCollectionIndex
         when: !root.isRestoringState
+        restoreMode: Binding.RestoreBindingOrValue  // AÑADIR ESTA LÍNEA
     }
 
     // Timer para forzar visibilidad después de la restauración
     Timer {
         id: ensureVisibleTimer
-        interval: 100 // Pequeño delay después de la restauración
+        interval: 100
         running: false
         repeat: false
         onTriggered: {
@@ -242,7 +310,6 @@ Item {
     onCurrentIndexChanged: {
         if (!isRestoring && currentIndex >= 0 && currentIndex < api.collections.count) {
             console.log("Collection index changed to:", currentIndex)
-            // Pequeño delay para asegurar que el ListView esté listo
             ensureVisibleTimer.restart()
         }
     }
@@ -251,6 +318,7 @@ Item {
     function nextItem() {
         if (currentIndex < api.collections.count - 1) {
             currentIndex++
+            root.currentCollectionIndex = currentIndex
             collectionsList.positionViewAtIndex(currentIndex, ListView.Contain)
         }
     }
@@ -258,6 +326,7 @@ Item {
     function previousItem() {
         if (currentIndex > 0) {
             currentIndex--
+            root.currentCollectionIndex = currentIndex
             collectionsList.positionViewAtIndex(currentIndex, ListView.Contain)
         }
     }
