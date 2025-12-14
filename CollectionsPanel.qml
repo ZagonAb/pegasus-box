@@ -69,12 +69,14 @@ FocusScope {
             }
         }
 
-        onSearchRequested: function(text) {
-            console.log("CollectionsPanel: Search requested:", text)
+        onSearchRequested: function(text, field) {
+            console.log("CollectionsPanel: Search requested")
+            console.log("  - Text:", text)
+            console.log("  - Field:", field)
 
-            // Actualizar la búsqueda en el GamesGridView
+            // Actualizar la búsqueda en el GamesGridView con el campo específico
             if (gamesGridView && typeof gamesGridView.updateSearch === "function") {
-                gamesGridView.updateSearch(text)
+                gamesGridView.updateSearch(text, field)
             }
         }
     }
@@ -350,7 +352,6 @@ FocusScope {
     }
 
     // Actualizar cuando cambia la colección
-    // Actualizar cuando cambia la colección
     Connections {
         target: root
         function onCurrentCollectionChanged() {
@@ -373,7 +374,7 @@ FocusScope {
 
     // Actualizar disponibilidad de filtros cuando se carga
     Component.onCompleted: {
-        console.log("CollectionsPanel loaded")
+        console.log("CollectionsPanel loaded with field-specific search")
 
         // Actualizar disponibilidad de filtros inicial
         if (topSection && typeof topSection.updateFilterAvailability === "function") {

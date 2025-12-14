@@ -12,7 +12,6 @@ FocusScope {
     property int columns: 4
     property int rows: 3
 
-    // Propiedad para detectar cambios en la colección
     property var currentCollection: root.currentCollection
 
     property var currentFilteredGame: {
@@ -28,6 +27,11 @@ FocusScope {
     GamesFilter {
         id: gamesFilter
         sourceModel: root.currentCollection ? root.currentCollection.games : null
+        globalSearchMode: false
+
+        onSearchCompleted: {
+            console.log("GamesGridView: Search completed")
+        }
     }
 
     // Fondo del panel
@@ -39,7 +43,6 @@ FocusScope {
         border.width: vpx(2)
         border.color: focus ? accentColor : borderColor
 
-        // Efecto de sombra
         layer.enabled: true
         layer.effect: DropShadow {
             horizontalOffset: 0
@@ -49,37 +52,162 @@ FocusScope {
             color: "#40000000"
         }
 
-        // Transición suave del borde
         Behavior on border.color {
             ColorAnimation { duration: 200 }
         }
     }
 
-    // Título del panel con nombre de colección
-    Text {
-        id: panelTitle
-        text: root.currentCollection ? root.currentCollection.name.toUpperCase() : "GAMES"
-        color: accentColor
-        font.family: condensedFontFamily
-        font.pixelSize: vpx(24)
-        font.bold: true
+    // Título del panel con información dinámica
+    Row {
+        id: titleRow
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
             margins: vpx(20)
         }
+        height: vpx(30)
+        spacing: vpx(12)
+
+        Text {
+            id: panelTitle
+            text: {
+                if (gamesFilter.globalSearchMode) {
+                    return "GLOBAL SEARCH"
+                }
+                return root.currentCollection ? root.currentCollection.name.toUpperCase() : "GAMES"
+            }
+            color: accentColor
+            font.family: condensedFontFamily
+            font.pixelSize: vpx(24)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: 200 }
+            }
+        }
+
+        // Spinner animado durante búsqueda
+        Item {
+            id: spinnerContainer
+            visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
+            width: vpx(24)
+            height: vpx(24)
+            anchors.verticalCenter: parent.verticalCenter
+
+            Image {
+                id: spinner
+                anchors.fill: parent
+                source: "assets/images/icons/spinner.png"
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                antialiasing: true
+
+                // Animación de rotación continua
+                RotationAnimator on rotation {
+                    running: spinnerContainer.visible
+                    from: 0
+                    to: 360
+                    duration: 1000
+                    loops: Animation.Infinite
+                }
+            }
+
+            // Fallback si no se encuentra la imagen
+            Rectangle {
+                visible: spinner.status === Image.Error
+                anchors.fill: parent
+                radius: width / 2
+                color: "transparent"
+                border.width: vpx(3)
+                border.color: accentColor
+
+                // Animación de rotación con estilo loading
+                RotationAnimator on rotation {
+                    running: parent.visible
+                    from: 0
+                    to: 360
+                    duration: 1000
+                    loops: Animation.Infinite
+                }
+
+                // Hacer que parezca un spinner con un arco
+                Rectangle {
+                    width: parent.width / 2
+                    height: vpx(3)
+                    color: accentColor
+                    anchors.centerIn: parent
+                    transformOrigin: Item.Left
+                }
+            }
+        }
+
+        // Contador de resultados
+        Text {
+            id: resultsCounter
+            visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching
+            text: {
+                var count = gamesFilter.filteredModel.count
+                if (count === 0) {
+                    return "(no results)"
+                } else if (count === 1) {
+                    return "(1 result)"
+                } else {
+                    return "(" + count + " results)"
+                }
+            }
+            color: secondaryTextColor
+            font.family: condensedFontFamily
+            font.pixelSize: vpx(18)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+            opacity: 0.8
+        }
     }
 
-    // Contenedor principal con RowLayout para separar grid y scrollbar
+    // Indicador de modo de búsqueda global
+    Text {
+        id: searchModeIndicator
+        visible: gamesFilter.globalSearchMode
+        text: {
+            var fieldName = "title"
+            if (gamesFilter.searchField) {
+                fieldName = gamesFilter.searchField
+            }
+
+            if (gamesFilter.isSearching) {
+                return "🔍 Searching by " + fieldName + " in " + api.allGames.count + " games..."
+            }
+
+            if (gamesFilter.searchText && gamesFilter.searchText.length > 0) {
+                return "🔍 Results for \"" + gamesFilter.searchText + "\" in " + fieldName
+            }
+            return "🔍 Searching across all " + api.allGames.count + " games"
+        }
+        color: secondaryTextColor
+        font.family: fontFamily
+        font.pixelSize: vpx(12)
+        anchors {
+            top: titleRow.bottom
+            left: parent.left
+            right: parent.right
+            margins: vpx(20)
+            topMargin: vpx(5)
+        }
+        opacity: 0.8
+        elide: Text.ElideRight
+    }
+
+    // Contenedor principal
     Item {
         anchors {
-            top: panelTitle.bottom
+            top: gamesFilter.globalSearchMode ? searchModeIndicator.bottom : titleRow.bottom
             left: parent.left
             right: parent.right
             bottom: parent.bottom
             margins: vpx(20)
-            topMargin: vpx(30)
+            topMargin: gamesFilter.globalSearchMode ? vpx(10) : vpx(20)
         }
 
         RowLayout {
@@ -87,7 +215,7 @@ FocusScope {
             anchors.fill: parent
             spacing: vpx(8)
 
-            // Grid de juegos (toma todo el espacio disponible)
+            // Grid de juegos
             GridView {
                 id: gamesGrid
                 Layout.fillWidth: true
@@ -96,13 +224,178 @@ FocusScope {
                 cellWidth: width / columns
                 cellHeight: cellWidth * 1.4
 
-                model: gamesFilter.filteredModel  // Usar el modelo filtrado
+                model: gamesFilter.filteredModel
                 currentIndex: gamesGridView.currentIndex
 
-                // Forzar que el juego actual sea visible
+                // Ocultar durante búsqueda activa
+                opacity: gamesFilter.isSearching ? 0.3 : 1.0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
+                }
+
                 onCurrentIndexChanged: {
                     if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
                         positionViewAtIndex(currentIndex, GridView.Contain)
+                    }
+                }
+
+                // Mensaje de búsqueda en progreso
+                Item {
+                    visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
+                    anchors.centerIn: parent
+                    width: parent.width * 0.8
+                    height: vpx(250)
+                    z: 100
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: vpx(25)
+
+                        // Spinner grande central
+                        Item {
+                            width: vpx(80)
+                            height: vpx(80)
+                            anchors.horizontalCenter: parent.horizontalCenter
+
+                            Image {
+                                id: bigSpinner
+                                anchors.fill: parent
+                                source: "assets/images/icons/spinner.png"
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                antialiasing: true
+
+                                RotationAnimator on rotation {
+                                    running: parent.parent.parent.visible
+                                    from: 0
+                                    to: 360
+                                    duration: 1200
+                                    loops: Animation.Infinite
+                                }
+                            }
+
+                            // Fallback spinner
+                            Rectangle {
+                                visible: bigSpinner.status === Image.Error
+                                anchors.fill: parent
+                                radius: width / 2
+                                color: "transparent"
+                                border.width: vpx(6)
+                                border.color: accentColor
+
+                                RotationAnimator on rotation {
+                                    running: parent.visible
+                                    from: 0
+                                    to: 360
+                                    duration: 1200
+                                    loops: Animation.Infinite
+                                }
+
+                                Rectangle {
+                                    width: parent.width / 2
+                                    height: vpx(6)
+                                    color: accentColor
+                                    anchors.centerIn: parent
+                                    transformOrigin: Item.Left
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "Searching..."
+                            color: textColor
+                            font.family: condensedFontFamily
+                            font.pixelSize: vpx(24)
+                            font.bold: true
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: {
+                                var fieldName = gamesFilter.searchField || "title"
+                                return "Looking for \"" + gamesFilter.searchText + "\" in " + fieldName
+                            }
+                            color: secondaryTextColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(16)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                            width: parent.width * 0.8
+                        }
+                    }
+                }
+
+                // Mensaje cuando no hay resultados en búsqueda global
+                Item {
+                    visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching && gamesFilter.filteredModel.count === 0
+                    anchors.centerIn: parent
+                    width: parent.width * 0.8
+                    height: vpx(250)
+                    z: 100
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: vpx(20)
+
+                        Text {
+                            text: "🔎"
+                            font.pixelSize: vpx(64)
+                            color: secondaryTextColor
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            opacity: 0.5
+
+                            // Animación de escala pulsante
+                            SequentialAnimation on scale {
+                                running: parent.parent.visible
+                                loops: Animation.Infinite
+                                NumberAnimation { from: 1.0; to: 1.1; duration: 1000; easing.type: Easing.InOutQuad }
+                                NumberAnimation { from: 1.1; to: 1.0; duration: 1000; easing.type: Easing.InOutQuad }
+                            }
+                        }
+
+                        Text {
+                            text: "No games found"
+                            color: textColor
+                            font.family: condensedFontFamily
+                            font.pixelSize: vpx(24)
+                            font.bold: true
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: {
+                                var fieldName = gamesFilter.searchField || "title"
+                                if (gamesFilter.searchText) {
+                                    return "No matches for \"" + gamesFilter.searchText + "\" in " + fieldName
+                                }
+                                return "Try a different search term or field"
+                            }
+                            color: secondaryTextColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(16)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                            width: parent.width
+                        }
+
+                        Rectangle {
+                            width: vpx(200)
+                            height: vpx(40)
+                            radius: vpx(6)
+                            color: "#333"
+                            anchors.horizontalCenter: parent.horizontalCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Clear Search (ESC)"
+                                color: secondaryTextColor
+                                font.family: fontFamily
+                                font.pixelSize: vpx(14)
+                            }
+                        }
                     }
                 }
 
@@ -110,14 +403,7 @@ FocusScope {
                     width: gamesGrid.cellWidth
                     height: gamesGrid.cellHeight
 
-                    // Propiedad para determinar si este item es el actual
                     readonly property bool isCurrent: index === gamesGrid.currentIndex
-                    readonly property bool panelHasFocus: {
-                        if (parent) {
-                            return parent.focus
-                        }
-                        return false
-                    }
 
                     Rectangle {
                         id: gameItem
@@ -126,18 +412,14 @@ FocusScope {
                         anchors.centerIn: parent
 
                         color: {
-                            // Verificar si este item es el actual
                             if (isCurrent) {
-                                // Si el panel de juegos tiene foco global, mostrar azul
                                 if (root.focusedPanel === "games") {
                                     return accentColor
                                 } else {
-                                    // Si otro panel tiene foco, mostrar color de borde
                                     return borderColor
                                 }
                             }
 
-                            // Hover solo si el mouse está sobre y no es current
                             if (mouseArea.containsMouse && mouseArea.pressed === false) {
                                 return "#333333"
                             }
@@ -147,7 +429,6 @@ FocusScope {
 
                         radius: vpx(6)
 
-                        // Transición suave del color
                         Behavior on color {
                             ColorAnimation { duration: 150 }
                         }
@@ -170,6 +451,7 @@ FocusScope {
                                     source: modelData.assets.boxFront || modelData.assets.logo || ""
                                     fillMode: Image.PreserveAspectFit
                                     asynchronous: true
+                                    cache: true
 
                                     Rectangle {
                                         anchors.fill: parent
@@ -187,6 +469,7 @@ FocusScope {
                                     }
                                 }
 
+                                // Indicador de favorito
                                 Rectangle {
                                     visible: modelData.favorite
                                     width: vpx(24)
@@ -204,6 +487,74 @@ FocusScope {
                                         text: "★"
                                         color: "#000"
                                         font.pixelSize: vpx(14)
+                                        font.bold: true
+                                    }
+                                }
+
+                                // Indicador de colección en búsqueda global
+                                Rectangle {
+                                    visible: gamesFilter.globalSearchMode &&
+                                    modelData.collections &&
+                                    modelData.collections.count > 0
+                                    width: parent.width - vpx(10)
+                                    height: vpx(22)
+                                    radius: vpx(4)
+                                    color: "#1a1a1a"
+                                    opacity: 0.95
+                                    anchors {
+                                        bottom: parent.bottom
+                                        horizontalCenter: parent.horizontalCenter
+                                        margins: vpx(5)
+                                    }
+
+                                    border.width: vpx(1)
+                                    border.color: accentColor
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: vpx(5)
+
+                                        Text {
+                                            text: "📁"
+                                            font.pixelSize: vpx(10)
+                                            color: accentColor
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        Text {
+                                            text: modelData.collections.get(0).shortName ||
+                                            modelData.collections.get(0).name
+                                            color: accentColor
+                                            font.family: condensedFontFamily
+                                            font.pixelSize: vpx(11)
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+                                }
+
+                                // Indicador de juego jugado recientemente
+                                Rectangle {
+                                    visible: !gamesFilter.globalSearchMode &&
+                                    modelData.playCount > 0
+                                    width: vpx(26)
+                                    height: vpx(26)
+                                    radius: width / 2
+                                    color: "#2a2a2a"
+                                    opacity: 0.9
+                                    anchors {
+                                        top: parent.top
+                                        left: parent.left
+                                        margins: vpx(5)
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "▶"
+                                        color: accentColor
+                                        font.pixelSize: vpx(12)
                                         font.bold: true
                                     }
                                 }
@@ -226,9 +577,33 @@ FocusScope {
                                     ColorAnimation { duration: 150 }
                                 }
                             }
+
+                            // Información adicional en búsqueda global
+                            Text {
+                                visible: gamesFilter.globalSearchMode &&
+                                (modelData.developer || modelData.releaseYear > 0)
+                                width: parent.width
+                                text: {
+                                    var info = []
+                                    if (modelData.releaseYear > 0) {
+                                        info.push(modelData.releaseYear.toString())
+                                    }
+                                    if (modelData.developer) {
+                                        var dev = modelData.developer.split(',')[0].trim()
+                                        if (dev.length > 15) dev = dev.substring(0, 15) + "..."
+                                            info.push(dev)
+                                    }
+                                    return info.join(" • ")
+                                }
+                                color: secondaryTextColor
+                                font.family: fontFamily
+                                font.pixelSize: vpx(11)
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                                opacity: 0.7
+                            }
                         }
 
-                        // Mouse/touch area
                         MouseArea {
                             id: mouseArea
                             anchors.fill: parent
@@ -248,6 +623,7 @@ FocusScope {
                 }
             }
 
+            // Scrollbar
             Rectangle {
                 id: scrollBar
                 Layout.preferredWidth: vpx(6)
@@ -284,21 +660,6 @@ FocusScope {
         }
     }
 
-    // Contador de juegos
-    Text {
-        id: gamesCount
-        anchors {
-            bottom: parent.bottom
-            right: parent.right
-            margins: vpx(20)
-        }
-        text: gamesFilter.filteredModel.count + " GAMES"
-        color: secondaryTextColor
-        font.family: condensedFontFamily
-        font.pixelSize: vpx(14)
-    }
-
-    // Navegación con teclado
     Keys.onPressed: {
         if (api.keys.isAccept(event)) {
             event.accepted = true
@@ -306,7 +667,12 @@ FocusScope {
         }
         else if (api.keys.isCancel(event)) {
             event.accepted = true
-            root.switchToCollectionsPanel()
+            // Si estamos en búsqueda global, limpiarla primero
+            if (gamesFilter.globalSearchMode) {
+                gamesFilter.updateSearch("", "title")
+            } else {
+                root.switchToCollectionsPanel()
+            }
         }
         else if (event.key === Qt.Key_Left) {
             event.accepted = true
@@ -354,13 +720,15 @@ FocusScope {
 
     // Detectar cuando cambia la colección
     onCurrentCollectionChanged: {
-        console.log("GamesGridView: Collection changed, resetting filter")
-        if (currentCollection) {
-            // Resetear el filtro
+        console.log("GamesGridView: Collection changed")
+        if (currentCollection && !gamesFilter.globalSearchMode) {
+            console.log("GamesGridView: Resetting filter (not in global search)")
             gamesFilter.resetFilter()
             currentIndex = 0
             root.currentGameIndex = 0
             gamesGrid.forceLayout()
+        } else if (gamesFilter.globalSearchMode) {
+            console.log("GamesGridView: Collection changed but maintaining global search")
         }
     }
 
@@ -369,19 +737,14 @@ FocusScope {
         enabled: !root.isRestoringState
 
         function onCurrentGameIndexChanged() {
-            console.log("Root game index changed to:", root.currentGameIndex)
-
-            // Actualizar root.currentGame basado en el modelo filtrado
             if (gamesFilter.filteredModel &&
                 root.currentGameIndex >= 0 &&
                 root.currentGameIndex < gamesFilter.filteredModel.count) {
 
                 if (currentIndex !== root.currentGameIndex) {
-                    console.log("Updating grid index to:", root.currentGameIndex)
                     currentIndex = root.currentGameIndex
                 }
 
-                // Forzar actualización del juego actual
                 root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
                 }
         }
@@ -396,30 +759,36 @@ FocusScope {
         console.log("GamesGridView: Updating filter to", filterType)
         gamesFilter.updateFilter(filterType)
 
-        // Resetear índice al cambiar filtro
         currentIndex = 0
         root.currentGameIndex = 0
 
-        // Actualizar el juego actual basado en el nuevo filtro
         if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
             root.currentGame = gamesFilter.filteredModel.get(0)
         } else {
             root.currentGame = null
         }
 
-        // Asegurar visibilidad
         ensureCurrentVisible()
     }
 
-    function updateSearch(searchText) {
-        console.log("GamesGridView: Updating search to", searchText)
-        gamesFilter.updateSearch(searchText)
+    function updateSearch(searchText, searchField) {
+        console.log("GamesGridView: Updating search")
+        console.log("  - Text:", searchText)
+        console.log("  - Field:", searchField)
 
-        // Resetear índice al buscar
+        gamesFilter.updateSearch(searchText, searchField)
+
         currentIndex = 0
         root.currentGameIndex = 0
 
-        // Asegurar visibilidad
+        if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
+            root.currentGame = gamesFilter.filteredModel.get(0)
+            console.log("GamesGridView: First result:", root.currentGame.title)
+        } else {
+            root.currentGame = null
+            console.log("GamesGridView: No results")
+        }
+
         ensureCurrentVisible()
     }
 
@@ -427,22 +796,18 @@ FocusScope {
         console.log("GamesGridView: Resetting filter")
         gamesFilter.resetFilter()
 
-        // Resetear índice
         currentIndex = 0
         root.currentGameIndex = 0
 
-        // Asegurar visibilidad
         ensureCurrentVisible()
     }
 
-    // Función para forzar visibilidad del índice actual
     function ensureCurrentVisible() {
         if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
             gamesGrid.positionViewAtIndex(currentIndex, GridView.Contain)
         }
     }
 
-    // Funciones de navegación por páginas
     function nextPage() {
         var nextIndex = currentIndex + (columns * rows)
         if (nextIndex < gamesFilter.filteredModel.count) {
@@ -466,6 +831,11 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        console.log("GamesGridView loaded with filter system")
+        console.log("=".repeat(60))
+        console.log("GamesGridView: Loaded with field-specific search and spinner")
+        console.log("  - Total games available:", api.allGames.count)
+        console.log("  - Grid layout:", columns, "x", rows)
+        console.log("  - Search fields: title, developer, genre, publisher, tags, sortBy")
+        console.log("=".repeat(60))
     }
 }
