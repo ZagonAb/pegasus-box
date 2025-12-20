@@ -88,7 +88,7 @@ FocusScope {
             }
         }
 
-        // Spinner animado durante búsqueda
+        //spinner
         Item {
             id: spinnerContainer
             visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
@@ -104,7 +104,6 @@ FocusScope {
                 smooth: true
                 antialiasing: true
 
-                // Animación de rotación continua
                 RotationAnimator on rotation {
                     running: spinnerContainer.visible
                     from: 0
@@ -114,7 +113,6 @@ FocusScope {
                 }
             }
 
-            // Fallback si no se encuentra la imagen
             Rectangle {
                 visible: spinner.status === Image.Error
                 anchors.fill: parent
@@ -123,7 +121,6 @@ FocusScope {
                 border.width: vpx(3)
                 border.color: accentColor
 
-                // Animación de rotación con estilo loading
                 RotationAnimator on rotation {
                     running: parent.visible
                     from: 0
@@ -132,7 +129,6 @@ FocusScope {
                     loops: Animation.Infinite
                 }
 
-                // Hacer que parezca un spinner con un arco
                 Rectangle {
                     width: parent.width / 2
                     height: vpx(3)
@@ -275,7 +271,6 @@ FocusScope {
                                 }
                             }
 
-                            // Fallback spinner
                             Rectangle {
                                 visible: bigSpinner.status === Image.Error
                                 anchors.fill: parent
@@ -346,7 +341,6 @@ FocusScope {
                             anchors.horizontalCenter: parent.horizontalCenter
                             opacity: 0.5
 
-                            // Animación de escala pulsante
                             SequentialAnimation on scale {
                                 running: parent.parent.visible
                                 loops: Animation.Infinite
@@ -433,229 +427,253 @@ FocusScope {
                             ColorAnimation { duration: 150 }
                         }
 
-                        Column {
+                        // Imagen del juego
+                        Rectangle {
+                            id: gameImageContainer
                             width: parent.width
-                            spacing: vpx(10)
+                            height: width * 0.75
+                            radius: vpx(4)
+                            color: "#222"
 
-                            // Imagen del juego
-                            Rectangle {
-                                width: parent.width
-                                height: width * 0.75
-                                radius: vpx(4)
-                                color: "#222"
+                            Image {
+                                id: gameImage
+                                anchors.fill: parent
+                                anchors.margins: vpx(2)
+                                source: modelData.assets.boxFront || modelData.assets.logo || ""
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                                cache: true
 
-                                Image {
-                                    id: gameImage
+                                Rectangle {
                                     anchors.fill: parent
-                                    anchors.margins: vpx(2)
-                                    source: modelData.assets.boxFront || modelData.assets.logo || ""
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true
-                                    cache: true
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        color: "#333"
-                                        visible: gameImage.status !== Image.Ready
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
-                                            color: textColor
-                                            font.family: condensedFontFamily
-                                            font.pixelSize: vpx(32)
-                                            font.bold: true
-                                        }
-                                    }
-                                }
-
-                                // Indicador de favorito
-                                Rectangle {
-                                    visible: modelData.favorite
-                                    width: vpx(24)
-                                    height: vpx(24)
-                                    radius: width / 2
-                                    color: "#ffcc00"
-                                    anchors {
-                                        top: parent.top
-                                        right: parent.right
-                                        margins: vpx(5)
-                                    }
+                                    color: "#333"
+                                    visible: gameImage.status !== Image.Ready
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "★"
-                                        color: "#000"
-                                        font.pixelSize: vpx(14)
-                                        font.bold: true
-                                    }
-                                }
-
-                                // Indicador de colección en búsqueda global
-                                Rectangle {
-                                    visible: gamesFilter.globalSearchMode &&
-                                    modelData.collections &&
-                                    modelData.collections.count > 0
-                                    width: parent.width - vpx(10)
-                                    height: vpx(22)
-                                    radius: vpx(4)
-                                    color: "#1a1a1a"
-                                    opacity: 0.95
-                                    anchors {
-                                        bottom: parent.bottom
-                                        horizontalCenter: parent.horizontalCenter
-                                        margins: vpx(5)
-                                    }
-
-                                    border.width: vpx(1)
-                                    border.color: accentColor
-
-                                    Row {
-                                        anchors.centerIn: parent
-                                        spacing: vpx(5)
-
-                                        Text {
-                                            text: "📁"
-                                            font.pixelSize: vpx(10)
-                                            color: accentColor
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                        Text {
-                                            text: modelData.collections.get(0).shortName ||
-                                            modelData.collections.get(0).name
-                                            color: accentColor
-                                            font.family: condensedFontFamily
-                                            font.pixelSize: vpx(11)
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                            maximumLineCount: 1
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-                                }
-
-                                // Indicador de juego jugado recientemente
-                                Rectangle {
-                                    visible: !gamesFilter.globalSearchMode &&
-                                    modelData.playCount > 0
-                                    width: vpx(26)
-                                    height: vpx(26)
-                                    radius: width / 2
-                                    color: "#2a2a2a"
-                                    opacity: 0.9
-                                    anchors {
-                                        top: parent.top
-                                        left: parent.left
-                                        margins: vpx(5)
-                                    }
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "▶"
-                                        color: accentColor
-                                        font.pixelSize: vpx(12)
+                                        text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
+                                        color: textColor
+                                        font.family: condensedFontFamily
+                                        font.pixelSize: vpx(32)
                                         font.bold: true
                                     }
                                 }
                             }
-
-                            // Título del juego
-                            Text {
-                                id: gameTitle
-                                width: parent.width
-                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
-                                color: isCurrent ? "#ffffff" : textColor
-                                font.family: fontFamily
-                                font.pixelSize: vpx(14)
-                                elide: Text.ElideRight
-                                horizontalAlignment: Text.AlignHCenter
-                                maximumLineCount: 2
-                                wrapMode: Text.WordWrap
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
-                                }
+                        }
+                        // Título del juego
+                        Text {
+                            id: gameTitle
+                            anchors {
+                                top: gameImageContainer.bottom
+                                left: parent.left
+                                right: parent.right
+                                topMargin: vpx(8)
                             }
+                            text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                            color: isCurrent ? "#ffffff" : textColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(14)
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+                            maximumLineCount: 2
+                            wrapMode: Text.WordWrap
 
-                            // Información adicional en búsqueda global
-                            Text {
-                                visible: gamesFilter.globalSearchMode &&
-                                (modelData.developer || modelData.releaseYear > 0)
-                                width: parent.width
-                                text: {
-                                    var info = []
-                                    if (modelData.releaseYear > 0) {
-                                        info.push(modelData.releaseYear.toString())
-                                    }
-                                    if (modelData.developer) {
-                                        var dev = modelData.developer.split(',')[0].trim()
-                                        if (dev.length > 15) dev = dev.substring(0, 15) + "..."
-                                            info.push(dev)
-                                    }
-                                    return info.join(" • ")
-                                }
-                                color: secondaryTextColor
-                                font.family: fontFamily
-                                font.pixelSize: vpx(11)
-                                elide: Text.ElideRight
-                                horizontalAlignment: Text.AlignHCenter
-                                opacity: 0.7
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
                             }
                         }
 
-                        MouseArea {
-                            id: mouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
+                        // Controles interactivos (history, favorite, play) - solo visible cuando está seleccionado
+                        // Reemplaza tu Row actual (líneas ~515-595) con esto:
 
-                            onClicked: {
-                                root.selectGameWithMouse(index)
+                        Row {
+                            id: itemIco
+                            height: vpx(30)
+                            spacing: vpx(10)
+                            visible: isCurrent
+                            anchors {
+                                bottom: parent.bottom
+                                bottomMargin: vpx(8)
+                                horizontalCenter: parent.horizontalCenter  // Esto centra automáticamente
                             }
 
-                            onDoubleClicked: {
-                                if (root.currentGame) {
-                                    root.launchCurrentGame()
+                            // History icon - solo visible si lastPlayed es válido
+                            Item {
+                                id: historyItem
+                                width: vpx(26)
+                                height: vpx(26)
+                                visible: modelData.lastPlayed && modelData.lastPlayed.toString() !== "Invalid Date"
+
+                                Image {
+                                    anchors.fill: parent
+                                    source: "assets/images/icons/history.svg"
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    antialiasing: true
+                                    opacity: 0.8
                                 }
+                            }
+
+                            // Favorite icon - interactivo
+                            Item {
+                                id: favoriteItem
+                                width: vpx(26)
+                                height: vpx(26)
+
+                                Image {
+                                    id: favoriteIcon
+                                    anchors.fill: parent
+                                    source: modelData.favorite ?
+                                    "assets/images/icons/favorite-yes.svg" :
+                                    "assets/images/icons/favorite-no.svg"
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    antialiasing: true
+                                    opacity: favoriteMouseArea.containsMouse ? 1.0 : 0.8
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 150 }
+                                    }
+
+                                    Behavior on scale {
+                                        NumberAnimation { duration: 100 }
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: favoriteMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+
+                                    onClicked: {
+                                        modelData.favorite = !modelData.favorite
+                                        favoriteIcon.scale = 0.8
+                                        scaleBackTimer.restart()
+                                    }
+
+                                    onPressed: {
+                                        favoriteIcon.scale = 0.9
+                                    }
+
+                                    onReleased: {
+                                        favoriteIcon.scale = 1.0
+                                    }
+
+                                    Timer {
+                                        id: scaleBackTimer
+                                        interval: 100
+                                        onTriggered: favoriteIcon.scale = 1.0
+                                    }
+                                }
+                            }
+
+                            // Play icon - interactivo
+                            Item {
+                                id: playItem
+                                width: vpx(26)
+                                height: vpx(26)
+
+                                Image {
+                                    id: playIcon
+                                    anchors.fill: parent
+                                    source: "assets/images/icons/play.svg"
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    antialiasing: true
+                                    opacity: playMouseArea.containsMouse ? 1.0 : 0.8
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 150 }
+                                    }
+
+                                    Behavior on scale {
+                                        NumberAnimation { duration: 100 }
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: playMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+
+                                    onClicked: {
+                                        modelData.launch()
+                                        playIcon.scale = 0.8
+                                        playScaleBackTimer.restart()
+                                    }
+
+                                    onPressed: {
+                                        playIcon.scale = 0.9
+                                    }
+
+                                    onReleased: {
+                                        playIcon.scale = 1.0
+                                    }
+
+                                    Timer {
+                                        id: playScaleBackTimer
+                                        interval: 100
+                                        onTriggered: playIcon.scale = 1.0
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        z: -1 // Detrás de los controles interactivos
+
+                        onClicked: {
+                            root.selectGameWithMouse(index)
+                        }
+
+                        onDoubleClicked: {
+                            if (root.currentGame) {
+                                root.launchCurrentGame()
                             }
                         }
                     }
                 }
             }
+        }
 
-            // Scrollbar
+        // Scrollbar
+        Rectangle {
+            id: scrollBar
+            Layout.preferredWidth: vpx(6)
+            Layout.fillHeight: true
+            radius: width / 2
+            color: "#555"
+            opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
+            visible: gamesGrid.contentHeight > gamesGrid.height
+
+            Behavior on opacity {
+                NumberAnimation { duration: 200 }
+            }
+
             Rectangle {
-                id: scrollBar
-                Layout.preferredWidth: vpx(6)
-                Layout.fillHeight: true
+                id: scrollHandle
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                }
+                height: Math.max(vpx(30), scrollBar.height * gamesGrid.visibleArea.heightRatio)
+
+                y: Math.min(
+                    Math.max(
+                        0,
+                        gamesGrid.visibleArea.yPosition * scrollBar.height
+                    ),
+                    scrollBar.height - scrollHandle.height
+                )
+
                 radius: width / 2
-                color: "#555"
-                opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
-                visible: gamesGrid.contentHeight > gamesGrid.height
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 200 }
-                }
-
-                Rectangle {
-                    id: scrollHandle
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: Math.max(vpx(30), scrollBar.height * gamesGrid.visibleArea.heightRatio)
-
-                    y: Math.min(
-                        Math.max(
-                            0,
-                            gamesGrid.visibleArea.yPosition * scrollBar.height
-                        ),
-                        scrollBar.height - scrollHandle.height
-                    )
-
-                    radius: width / 2
-                    color: accentColor
-                }
+                color: accentColor
             }
         }
     }
@@ -832,10 +850,10 @@ FocusScope {
 
     Component.onCompleted: {
         console.log("=".repeat(60))
-        console.log("GamesGridView: Loaded with field-specific search and spinner")
+        console.log("GamesGridView: Loaded with interactive controls")
         console.log("  - Total games available:", api.allGames.count)
         console.log("  - Grid layout:", columns, "x", rows)
-        console.log("  - Search fields: title, developer, genre, publisher, tags, sortBy")
+        console.log("  - Interactive: favorite toggle, play button, history indicator")
         console.log("=".repeat(60))
     }
 }

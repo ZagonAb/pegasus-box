@@ -167,7 +167,7 @@ Item {
                 DetailRow {
                     label: "Genre:"
                     value: displayGame && displayGame.genre ?
-                    displayGame.genre : "Unknown"
+                    Utils.getFirstGenre(displayGame) : "Unknown"
                     labelColor: secondaryTextColor
                     valueColor: textColor
                 }

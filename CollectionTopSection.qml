@@ -9,24 +9,17 @@ Item {
     height: vpx(120)
     z: 10
 
-    // Propiedades públicas
     property string currentFilter: "All Games"
     property string searchText: ""
-    property string searchField: "title" // Campo de búsqueda activo
-
-    // Estado de filtros disponibles
+    property string searchField: "title"
     property bool canFilterFavorites: false
     property bool canFilterLastPlayed: false
-
-    // Indicador de búsqueda global
     property bool isGlobalSearch: false
-    property bool isSearching: false // Nuevo: indica si está buscando
+    property bool isSearching: false
 
-    // Señales
     signal filterChanged(string filterType)
     signal searchRequested(string text, string field)
 
-    // Opciones de filtro (Categories eliminado)
     property var filterOptions: [
         "All Games",
         "Favorites",
@@ -35,7 +28,6 @@ Item {
         "Year"
     ]
 
-    // Opciones de búsqueda con imágenes SVG
     property var searchFieldOptions: [
         {name: "Title", value: "title", icon: "assets/images/icons/allgames.svg"},
         {name: "Developer", value: "developer", icon: "assets/images/icons/developer.svg"},
@@ -52,7 +44,6 @@ Item {
         anchors.fill: parent
         spacing: vpx(10)
 
-        // BARRA DE BÚSQUEDA MEJORADA CON ANIMACIÓN
         Rectangle {
             id: searchBar
             width: parent.width
@@ -63,7 +54,6 @@ Item {
             border.color: isGlobalSearch ? accentColor : borderColor
             z: 30
 
-            // Animación de altura al expandirse
             Behavior on height {
                 NumberAnimation {
                     duration: 250
@@ -71,15 +61,12 @@ Item {
                 }
             }
 
-            // Animación de borde
             Behavior on border.width {
                 NumberAnimation { duration: 200 }
             }
 
-            // Estado de foco del input
             property bool inputHasFocus: searchInput.activeFocus
 
-            // Ajustar altura según el foco
             states: [
                 State {
                     name: "focused"
@@ -122,7 +109,6 @@ Item {
                 }
             ]
 
-            // Indicador visual de búsqueda global
             Rectangle {
                 visible: isGlobalSearch
                 anchors.fill: parent
@@ -130,7 +116,6 @@ Item {
                 color: accentColor
                 opacity: 0.1
 
-                // Animación de "pulsación" para indicar búsqueda activa
                 SequentialAnimation on opacity {
                     running: isGlobalSearch && isSearching
                     loops: Animation.Infinite
@@ -148,7 +133,6 @@ Item {
                     anchors.fill: parent
                     spacing: vpx(10)
 
-                    // Menú desplegable de campo de búsqueda con animación
                     Rectangle {
                         id: searchFieldSelector
                         width: searchBar.inputHasFocus ? vpx(90) : vpx(120)
@@ -158,7 +142,6 @@ Item {
                         border.width: vpx(1)
                         border.color: searchFieldDropdownVisible ? accentColor : "#444"
 
-                        // Animación suave al cambiar de tamaño
                         Behavior on width {
                             NumberAnimation {
                                 duration: 250
@@ -170,7 +153,6 @@ Item {
                             ColorAnimation { duration: 150 }
                         }
 
-                        // Animación de opacidad al achicarse
                         opacity: searchBar.inputHasFocus ? 0.7 : 1.0
 
                         Behavior on opacity {
@@ -186,7 +168,6 @@ Item {
 
                             spacing: searchBar.inputHasFocus ? vpx(3) : vpx(6)
 
-                            // Animación del spacing
                             Behavior on spacing {
                                 NumberAnimation {
                                     duration: 250
@@ -194,7 +175,6 @@ Item {
                                 }
                             }
 
-                            // Icono del campo de búsqueda actual (reemplaza emoji con SVG)
                             Image {
                                 id: searchFieldIcon
                                 width: searchBar.inputHasFocus ? vpx(12) : vpx(14)
@@ -229,7 +209,6 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: searchBar.inputHasFocus ? vpx(50) : vpx(60)
 
-                                // Animación de tamaño de fuente
                                 Behavior on font.pixelSize {
                                     NumberAnimation {
                                         duration: 250
@@ -237,7 +216,6 @@ Item {
                                     }
                                 }
 
-                                // Animación de ancho
                                 Behavior on width {
                                     NumberAnimation {
                                         duration: 250
@@ -253,7 +231,6 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 rotation: searchFieldDropdownVisible ? 180 : 0
 
-                                // Animación de tamaño de fuente
                                 Behavior on font.pixelSize {
                                     NumberAnimation {
                                         duration: 250
@@ -280,7 +257,6 @@ Item {
                         }
                     }
 
-                    // Separador vertical
                     Rectangle {
                         width: vpx(2)
                         height: parent.height * 0.6
@@ -288,7 +264,6 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    // Icono de búsqueda con animación (reemplaza emoji con SVG)
                     Image {
                         id: searchIcon
                         width: searchBar.inputHasFocus ? vpx(18) : vpx(15)
@@ -298,7 +273,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         mipmap: true
 
-                        // Cambiar color según modo de búsqueda
+
                         layer.enabled: true
                         layer.effect: ColorOverlay {
                             color: isGlobalSearch ? accentColor : secondaryTextColor
@@ -309,7 +284,6 @@ Item {
                             }
                         }
 
-                        // Animación de tamaño
                         Behavior on width {
                             NumberAnimation {
                                 duration: 250
@@ -326,7 +300,6 @@ Item {
 
                         scale: 1.0
 
-                        // Animación al cambiar el ícono
                         Behavior on source {
                             SequentialAnimation {
                                 NumberAnimation {
@@ -345,15 +318,12 @@ Item {
                         }
                     }
 
-                    // Contenedor para campo de texto y placeholder con animación de expansión
                     Item {
                         id: inputContainer
-                        // Se expande cuando searchFieldSelector se achica
                         width: parent.width - searchFieldSelector.width - searchIcon.width - clearButton.width - vpx(10)
                         height: parent.height
                         anchors.verticalCenter: parent.verticalCenter
 
-                        // Animación de ancho al expandirse
                         Behavior on width {
                             NumberAnimation {
                                 duration: 250
@@ -361,11 +331,11 @@ Item {
                             }
                         }
 
-                        // Campo de texto mejorado
                         TextInput {
                             id: searchInput
                             anchors.fill: parent
                             anchors.topMargin: vpx(2)
+                            // anchors.rightMargin: clearButton.visible ? clearButton.width + vpx(5) : 0
                             text: searchText
                             color: textColor
                             font.family: fontFamily
@@ -403,10 +373,10 @@ Item {
                             }
                         }
 
-                        // Placeholder dinámico con información
                         Text {
                             anchors.fill: parent
                             anchors.topMargin: vpx(2)
+                            anchors.rightMargin: clearButton.visible ? clearButton.width + vpx(5) : 0
                             text: "Search by " + getCurrentSearchFieldName().toLowerCase()
                             color: secondaryTextColor
                             font.family: fontFamily
@@ -416,11 +386,12 @@ Item {
                             elide: Text.ElideRight
                         }
 
-                        // Feedback visual mejorado al escribir
                         Rectangle {
+                            id: bottomLine
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
+                            anchors.rightMargin: clearButton.visible ? clearButton.width + vpx(5) : 0
                             height: vpx(2)
                             color: accentColor
                             opacity: searchInput.activeFocus ? 0.8 : 0
@@ -433,7 +404,6 @@ Item {
                                 NumberAnimation { duration: 250 }
                             }
 
-                            // Animación de ancho desde el centro
                             scale: searchInput.activeFocus ? 1.0 : 0.0
                             transformOrigin: Item.Center
 
@@ -445,62 +415,61 @@ Item {
                             }
                         }
 
-                        // MouseArea para hacer clic en el área y dar foco
+                        Item {
+                            id: clearButton
+                            width: vpx(30)
+                            height: parent.height
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: searchInput.text.length > 0
+
+                            Text {
+                                id: clearButtonText
+                                anchors.centerIn: parent
+                                text: "✕"
+                                color: secondaryTextColor
+                                font.pixelSize: vpx(18)
+
+                                opacity: clearMouseArea.pressed ? 0.6 : 1.0
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 100 }
+                                }
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                            }
+
+                            MouseArea {
+                                id: clearMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+
+                                onEntered: clearButtonText.color = accentColor
+                                onExited: clearButtonText.color = secondaryTextColor
+
+                                onClicked: {
+                                    searchInput.text = ""
+                                    searchInput.focus = false
+                                    searchTimer.stop()
+                                    isGlobalSearch = false
+                                    isSearching = false
+                                    searchField = "title"
+                                    searchRequested("", searchField)
+                                }
+                            }
+                        }
+
                         MouseArea {
                             anchors.fill: parent
                             onClicked: searchInput.forceActiveFocus()
                             enabled: !searchInput.activeFocus
                         }
                     }
-
-                    // Botón para limpiar búsqueda
-                    Item {
-                        id: clearButton
-                        width: vpx(30)
-                        height: parent.height
-                        visible: searchInput.text.length > 0
-
-                        Text {
-                            id: clearButtonText
-                            anchors.centerIn: parent
-                            text: "✕"
-                            color: secondaryTextColor
-                            font.pixelSize: vpx(18)
-
-                            opacity: clearMouseArea.pressed ? 0.6 : 1.0
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
-                            }
-                        }
-
-                        MouseArea {
-                            id: clearMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-
-                            onEntered: clearButtonText.color = accentColor
-                            onExited: clearButtonText.color = secondaryTextColor
-
-                            onClicked: {
-                                searchInput.text = ""
-                                searchInput.focus = false
-                                searchTimer.stop()
-                                isGlobalSearch = false
-                                isSearching = false
-                                searchField = "title" // Resetear a title
-                                searchRequested("", searchField)
-                            }
-                        }
-                    }
                 }
             }
 
-            // Efecto de foco
             Rectangle {
                 anchors.fill: parent
                 radius: parent.radius
@@ -519,7 +488,6 @@ Item {
             }
         }
 
-        // MENÚ DE FILTROS
         Rectangle {
             id: filterMenu
             width: parent.width
@@ -535,7 +503,6 @@ Item {
                 NumberAnimation { duration: 200 }
             }
 
-            // Overlay de deshabilitado
             Rectangle {
                 visible: isGlobalSearch
                 anchors.fill: parent
@@ -549,7 +516,6 @@ Item {
                 anchors.margins: vpx(10)
                 spacing: vpx(10)
 
-                // Icono de configuración (reemplaza emoji con SVG)
                 Image {
                     id: settingsIcon
                     width: vpx(20)
@@ -617,7 +583,6 @@ Item {
         }
     }
 
-    // MENÚ DESPLEGABLE DE CAMPO DE BÚSQUEDA
     Item {
         id: searchFieldDropdownContainer
         width: vpx(180)
@@ -682,7 +647,6 @@ Item {
                             anchors.rightMargin: vpx(15)
                             spacing: vpx(12)
 
-                            // Icono del campo de búsqueda (reemplaza emoji con SVG)
                             Image {
                                 width: vpx(16)
                                 height: width
@@ -743,7 +707,6 @@ Item {
                             searchField = modelData.value
                             searchFieldDropdownVisible = false
 
-                            // Si hay texto de búsqueda, reiniciar la búsqueda con el nuevo campo
                             if (searchText.trim() !== "") {
                                 isSearching = true
                                 searchTimer.restart()
@@ -755,7 +718,6 @@ Item {
         }
     }
 
-    // MENÚ DESPLEGABLE DE FILTROS
     Item {
         id: dropdownContainer
         width: parent.width
@@ -834,7 +796,6 @@ Item {
                             anchors.rightMargin: vpx(15)
                             spacing: vpx(15)
 
-                            // Icono del filtro (reemplaza emoji con SVG)
                             Image {
                                 id: filterIconImage
                                 width: vpx(18)
@@ -965,7 +926,6 @@ Item {
         }
     }
 
-    // Cerrar dropdown de campo de búsqueda al hacer clic fuera
     MouseArea {
         anchors.fill: parent
         enabled: searchFieldDropdownVisible
@@ -973,16 +933,14 @@ Item {
         onClicked: searchFieldDropdownVisible = false
     }
 
-    // Timer optimizado para búsqueda con debounce
     Timer {
         id: searchTimer
-        interval: 400  // Aumentado ligeramente para dar tiempo a escribir
+        interval: 400
         onTriggered: {
             searchRequested(searchText.trim(), searchField)
         }
     }
 
-    // Funciones de utilidad
     function getFilterIcon(filterName) {
         switch(filterName) {
             case "All Games": return "assets/images/icons/allgames.svg"
@@ -1012,7 +970,6 @@ Item {
         return "assets/images/icons/allgames.svg"
     }
 
-    // API pública
     function setFilter(filterType) {
         if (filterOptions.includes(filterType) && !isGlobalSearch) {
             currentFilter = filterType
@@ -1064,7 +1021,7 @@ Item {
         searchText = ""
         isGlobalSearch = false
         isSearching = false
-        searchField = "title" // Resetear a title
+        searchField = "title"
         searchTimer.stop()
         searchRequested("", searchField)
     }
@@ -1093,7 +1050,6 @@ Item {
         isSearching = searching
     }
 
-    // Manejo de teclado
     Keys.onPressed: {
         if (event.key === Qt.Key_Escape) {
             if (searchFieldDropdownVisible) {
