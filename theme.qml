@@ -15,6 +15,9 @@ FocusScope {
     // Estado de expansión del panel de detalles
     property bool detailsExpanded: false
 
+    // Estado de la vista: "grid" o "list"
+    property string gamesViewMode: "grid"
+
     signal forceGridUpdate(int collectionIndex, int gameIndex)
 
     property color backgroundColor: "#0a0a0a"
@@ -27,12 +30,13 @@ FocusScope {
     property string condensedFontFamily: global.fonts.condensed
 
     property var currentGame: {
-        if (gamesGridView && gamesGridView.gamesFilter &&
-            gamesGridView.gamesFilter.filteredModel &&
+        var activeView = gamesViewMode === "grid" ? gamesGridView : gamesListView
+        if (activeView && activeView.gamesFilter &&
+            activeView.gamesFilter.filteredModel &&
             currentGameIndex >= 0 &&
-            currentGameIndex < gamesGridView.gamesFilter.filteredModel.count) {
+            currentGameIndex < activeView.gamesFilter.filteredModel.count) {
 
-            var filteredGame = gamesGridView.gamesFilter.filteredModel.get(currentGameIndex)
+            var filteredGame = activeView.gamesFilter.filteredModel.get(currentGameIndex)
             if (filteredGame) {
                 return filteredGame
             }
@@ -69,9 +73,11 @@ FocusScope {
                 }
             }
 
+            // GridView (visible cuando gamesViewMode === "grid")
             GamesGridView {
                 id: gamesGridView
-                // Ancho animado: 50% cuando normal, 33% cuando expandido
+                visible: gamesViewMode === "grid"
+                opacity: visible ? 1.0 : 0.0
                 width: detailsExpanded ?
                 parent.width * 0.33 - vpx(10) :
                 parent.width * 0.5 - vpx(10)
@@ -79,18 +85,20 @@ FocusScope {
                 anchors.left: collectionsPanel.right
                 anchors.leftMargin: vpx(20)
                 currentIndex: root.currentGameIndex
-                focus: root.focusedPanel === "games"
+                focus: root.focusedPanel === "games" && visible
 
-                // Cambiar columnas dinámicamente
                 columns: detailsExpanded ? 3 : 4
                 rows: 3
 
-                // Animación suave del ancho
                 Behavior on width {
                     NumberAnimation {
                         duration: 400
                         easing.type: Easing.OutCubic
                     }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
                 }
 
                 onCurrentIndexChanged: {
@@ -99,19 +107,29 @@ FocusScope {
                         root.saveState("game_changed")
                     }
                 }
+
+                onSwitchToListView: {
+                    console.log("Switching to List View")
+                    root.gamesViewMode = "list"
+                    api.memory.set('gamesViewMode', "list")
+                    gamesListView.currentIndex = gamesGridView.currentIndex
+                }
             }
 
-            GameDetailsPanel {
-                id: gameDetailsPanel
-                // Ancho animado: 25% cuando normal, 42% cuando expandido
+            // ListView (visible cuando gamesViewMode === "list")
+            GamesListView {
+                id: gamesListView
+                visible: gamesViewMode === "list"
+                opacity: visible ? 1.0 : 0.0
                 width: detailsExpanded ?
-                parent.width * 0.42 - vpx(10) :
-                parent.width * 0.25 - vpx(10)
+                parent.width * 0.33 - vpx(10) :
+                parent.width * 0.5 - vpx(10)
                 height: parent.height
-                anchors.left: gamesGridView.right
+                anchors.left: collectionsPanel.right
                 anchors.leftMargin: vpx(20)
+                currentIndex: root.currentGameIndex
+                focus: root.focusedPanel === "games" && visible
 
-                // Animación suave del ancho
                 Behavior on width {
                     NumberAnimation {
                         duration: 400
@@ -119,12 +137,45 @@ FocusScope {
                     }
                 }
 
-                // Conectar la señal de expansión
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
+                }
+
+                onCurrentIndexChanged: {
+                    if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
+                        root.currentGameIndex = currentIndex
+                        root.saveState("game_changed")
+                    }
+                }
+
+                onSwitchToGridView: {
+                    console.log("Switching to Grid View")
+                    root.gamesViewMode = "grid"
+                    api.memory.set('gamesViewMode', "grid")
+                    gamesGridView.currentIndex = gamesListView.currentIndex
+                }
+            }
+
+            GameDetailsPanel {
+                id: gameDetailsPanel
+                width: detailsExpanded ?
+                parent.width * 0.42 - vpx(10) :
+                parent.width * 0.25 - vpx(10)
+                height: parent.height
+                anchors.left: gamesViewMode === "grid" ? gamesGridView.right : gamesListView.right
+                anchors.leftMargin: vpx(20)
+
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 400
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
                 onExpansionChanged: {
                     root.detailsExpanded = expanded
                     console.log("Details panel expanded:", expanded)
 
-                    // Si se expande, cambiar el foco al panel de detalles
                     if (expanded) {
                         root.focusedPanel = "details"
                     }
@@ -149,23 +200,41 @@ FocusScope {
         }
     }
 
+    Connections {
+        target: gamesListView
+        function onFilteredGameChanged(game) {
+            if (game && !root.isRestoringState) {
+                root.currentGame = game
+            }
+        }
+
+        function onCollapseDetailsPanel() {
+            if (root.detailsExpanded) {
+                gameDetailsPanel.isExpanded = false
+                root.detailsExpanded = false
+            }
+        }
+    }
+
     onForceGridUpdate: {
         if (collectionIndex >= 0 && collectionIndex < api.collections.count) {
             currentCollectionIndex = collectionIndex
         }
         if (gameIndex >= 0 && root.currentCollection && gameIndex < root.currentCollection.games.count) {
             currentGameIndex = gameIndex
-            gamesGridView.currentIndex = gameIndex
+            if (gamesViewMode === "grid") {
+                gamesGridView.currentIndex = gameIndex
+            } else {
+                gamesListView.currentIndex = gameIndex
+            }
         }
     }
 
     Keys.onPressed: {
-        // ESC colapsa el panel de detalles si está expandido
         if (api.keys.isCancel(event)) {
             event.accepted = true
 
             if (detailsExpanded) {
-                // Colapsar panel de detalles
                 gameDetailsPanel.isExpanded = false
                 root.detailsExpanded = false
                 root.focusedPanel = "games"
@@ -184,13 +253,21 @@ FocusScope {
         else if (api.keys.isNextPage(event)) {
             event.accepted = true
             if (focusedPanel === "games") {
-                gamesGridView.nextPage()
+                if (gamesViewMode === "grid") {
+                    gamesGridView.nextPage()
+                } else {
+                    gamesListView.nextPage()
+                }
             }
         }
         else if (api.keys.isPrevPage(event)) {
             event.accepted = true
             if (focusedPanel === "games") {
-                gamesGridView.previousPage()
+                if (gamesViewMode === "grid") {
+                    gamesGridView.previousPage()
+                } else {
+                    gamesListView.previousPage()
+                }
             }
         }
         else if (api.keys.isPageUp(event)) {
@@ -213,18 +290,38 @@ FocusScope {
         }
         else if (event.key === Qt.Key_Left) {
             event.accepted = true
-            if (focusedPanel === "games" && gamesGridView.currentIndex === 0) {
-                root.switchToCollectionsPanel()
+            if (focusedPanel === "games") {
+                var activeView = gamesViewMode === "grid" ? gamesGridView : gamesListView
+                if (activeView.currentIndex === 0) {
+                    root.switchToCollectionsPanel()
+                }
             }
         }
-        // Tecla Tab o 'D' para alternar el panel de detalles
         else if (event.key === Qt.Key_Tab || event.key === Qt.Key_D) {
             event.accepted = true
             gameDetailsPanel.isExpanded = !gameDetailsPanel.isExpanded
         }
+        // Atajo V para cambiar entre Grid y List
+        else if (event.key === Qt.Key_V) {
+            event.accepted = true
+            if (gamesViewMode === "grid") {
+                gamesListView.currentIndex = gamesGridView.currentIndex
+                root.gamesViewMode = "list"
+            } else {
+                gamesGridView.currentIndex = gamesListView.currentIndex
+                root.gamesViewMode = "grid"
+            }
+            api.memory.set('gamesViewMode', root.gamesViewMode)
+        }
     }
 
     Component.onCompleted: {
+        // Restaurar el modo de vista guardado
+        var savedViewMode = api.memory.get('gamesViewMode')
+        if (savedViewMode === "list" || savedViewMode === "grid") {
+            root.gamesViewMode = savedViewMode
+        }
+
         root.restoreState()
     }
 
@@ -239,8 +336,10 @@ FocusScope {
             root.currentCollectionIndex = index
             root.currentGameIndex = 0
 
-            if (gamesGridView) {
+            if (gamesViewMode === "grid" && gamesGridView) {
                 gamesGridView.currentIndex = 0
+            } else if (gamesViewMode === "list" && gamesListView) {
+                gamesListView.currentIndex = 0
             }
 
             isRestoringState = false
@@ -250,9 +349,12 @@ FocusScope {
 
     function switchToGamesPanel() {
         focusedPanel = "games"
-        gamesGridView.forceActiveFocus()
+        if (gamesViewMode === "grid") {
+            gamesGridView.forceActiveFocus()
+        } else {
+            gamesListView.forceActiveFocus()
+        }
 
-        // Colapsar el panel de detalles al volver al grid
         if (detailsExpanded) {
             gameDetailsPanel.isExpanded = false
         }
@@ -262,7 +364,6 @@ FocusScope {
         focusedPanel = "collections"
         collectionsPanel.forceActiveFocus()
 
-        // Colapsar el panel de detalles
         if (detailsExpanded) {
             gameDetailsPanel.isExpanded = false
         }
@@ -278,6 +379,7 @@ FocusScope {
     function saveState(reason) {
         api.memory.set('lastCollectionIndex', currentCollectionIndex)
         api.memory.set('lastGameIndex', currentGameIndex)
+        api.memory.set('gamesViewMode', gamesViewMode)
 
         if (currentCollection) {
             api.memory.set('lastCollectionName', currentCollection.name)
@@ -340,14 +442,22 @@ FocusScope {
                 savedGameIndex < root.currentCollection.games.count) {
 
                 root.currentGameIndex = savedGameIndex
-                gamesGridView.currentIndex = savedGameIndex
+                if (gamesViewMode === "grid") {
+                    gamesGridView.currentIndex = savedGameIndex
+                } else {
+                    gamesListView.currentIndex = savedGameIndex
+                }
 
                 } else if (savedGameTitle && root.currentCollection) {
                     for (var j = 0; j < root.currentCollection.games.count; j++) {
                         var game = root.currentCollection.games.get(j)
                         if (game && game.title === savedGameTitle) {
                             root.currentGameIndex = j
-                            gamesGridView.currentIndex = j
+                            if (gamesViewMode === "grid") {
+                                gamesGridView.currentIndex = j
+                            } else {
+                                gamesListView.currentIndex = j
+                            }
                             break
                         }
                     }
@@ -355,10 +465,18 @@ FocusScope {
 
                 if (root.currentGameIndex === undefined || root.currentGameIndex < 0) {
                     root.currentGameIndex = 0
-                    gamesGridView.currentIndex = 0
+                    if (gamesViewMode === "grid") {
+                        gamesGridView.currentIndex = 0
+                    } else {
+                        gamesListView.currentIndex = 0
+                    }
                 }
 
-                gamesGridView.forceActiveFocus()
+                if (gamesViewMode === "grid") {
+                    gamesGridView.forceActiveFocus()
+                } else {
+                    gamesListView.forceActiveFocus()
+                }
                 root.isRestoringState = false
         }
     }
@@ -389,8 +507,10 @@ FocusScope {
         currentGameIndex = 0
 
         collectionsPanel.currentIndex = index
-        if (gamesGridView) {
+        if (gamesViewMode === "grid" && gamesGridView) {
             gamesGridView.currentIndex = 0
+        } else if (gamesViewMode === "list" && gamesListView) {
+            gamesListView.currentIndex = 0
         }
 
         focusedPanel = "collections"
@@ -404,20 +524,30 @@ FocusScope {
         isRestoringState = true
 
         currentGameIndex = index
-        if (gamesGridView) {
+        if (gamesViewMode === "grid" && gamesGridView) {
             gamesGridView.currentIndex = index
+        } else if (gamesViewMode === "list" && gamesListView) {
+            gamesListView.currentIndex = index
         }
 
         focusedPanel = "games"
-        gamesGridView.forceActiveFocus()
+        if (gamesViewMode === "grid") {
+            gamesGridView.forceActiveFocus()
+        } else {
+            gamesListView.forceActiveFocus()
+        }
 
         isRestoringState = false
         saveState("game_mouse_selected")
     }
 
     onCurrentGameIndexChanged: {
-        if (!isRestoringState && gamesGridView.currentIndex !== currentGameIndex) {
-            gamesGridView.currentIndex = currentGameIndex
+        if (!isRestoringState) {
+            if (gamesViewMode === "grid" && gamesGridView.currentIndex !== currentGameIndex) {
+                gamesGridView.currentIndex = currentGameIndex
+            } else if (gamesViewMode === "list" && gamesListView.currentIndex !== currentGameIndex) {
+                gamesListView.currentIndex = currentGameIndex
+            }
         }
     }
 
@@ -426,7 +556,11 @@ FocusScope {
             if (focusedPanel === "collections") {
                 collectionsPanel.forceActiveFocus()
             } else if (focusedPanel === "games") {
-                gamesGridView.forceActiveFocus()
+                if (gamesViewMode === "grid") {
+                    gamesGridView.forceActiveFocus()
+                } else {
+                    gamesListView.forceActiveFocus()
+                }
             }
         })
     }

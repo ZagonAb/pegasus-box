@@ -10,6 +10,7 @@ FocusScope {
 
     property int currentIndex: 0
     property var currentCollection: root.currentCollection
+
     property var currentFilteredGame: {
         if (gamesFilter.filteredModel && currentIndex >= 0 &&
             currentIndex < gamesFilter.filteredModel.count) {
@@ -20,6 +21,7 @@ FocusScope {
 
     signal currentGameChanged(var game)
     signal collapseDetailsPanel()
+    signal switchToGridView()
 
     GamesFilter {
         id: gamesFilter
@@ -34,7 +36,9 @@ FocusScope {
     // MouseArea global para colapsar el panel de detalles
     MouseArea {
         anchors.fill: parent
-        onClicked: gamesListView.collapseDetailsPanel()
+        onClicked: {
+            gamesListView.collapseDetailsPanel()
+        }
         propagateComposedEvents: true
         z: -10
     }
@@ -62,136 +66,217 @@ FocusScope {
         }
     }
 
-    // Contenedor principal
-    Item {
+    // Título del panel con ícono de cambio a GridView
+    Row {
+        id: titleRow
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
-            bottom: parent.bottom
             margins: vpx(20)
         }
+        height: vpx(30)
+        spacing: vpx(12)
 
-        // Mensaje de búsqueda en progreso
+        Text {
+            id: panelTitle
+            text: {
+                if (gamesFilter.globalSearchMode) {
+                    return "GLOBAL SEARCH"
+                }
+                return root.currentCollection ? root.currentCollection.name.toUpperCase() : "GAMES"
+            }
+            color: accentColor
+            font.family: condensedFontFamily
+            font.pixelSize: vpx(24)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: 200 }
+            }
+        }
+
+        // Ícono para cambiar a GridView
         Item {
+            width: vpx(28)
+            height: vpx(28)
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.gamesViewMode === "list"
+
+            Image {
+                id: gridViewIcon
+                anchors.fill: parent
+                source: "assets/images/icons/gridview.svg"
+                fillMode: Image.PreserveAspectFit
+                mipmap: true
+                opacity: gridViewMouseArea.containsMouse ? 1.0 : 0.7
+
+                ColorOverlay {
+                    anchors.fill: parent
+                    source: parent
+                    color: gridViewMouseArea.containsMouse ? accentColor : secondaryTextColor
+                    cached: false
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+
+            MouseArea {
+                id: gridViewMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    gamesListView.switchToGridView()
+                }
+            }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width + vpx(8)
+                height: parent.height + vpx(8)
+                radius: vpx(4)
+                color: "transparent"
+                border.color: accentColor
+                border.width: vpx(1)
+                opacity: gridViewMouseArea.containsMouse ? 0.3 : 0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+        }
+
+        // Spinner
+        Item {
+            id: spinnerContainer
             visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
-            anchors.centerIn: parent
-            width: parent.width * 0.8
-            height: vpx(250)
-            z: 100
+            width: vpx(24)
+            height: vpx(24)
+            anchors.verticalCenter: parent.verticalCenter
 
-            Column {
-                anchors.centerIn: parent
-                spacing: vpx(25)
+            Image {
+                id: spinner
+                anchors.fill: parent
+                source: "assets/images/icons/spinner.png"
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                antialiasing: true
 
-                Item {
-                    width: vpx(80)
-                    height: vpx(80)
-                    anchors.horizontalCenter: parent.horizontalCenter
+                RotationAnimator on rotation {
+                    running: spinnerContainer.visible
+                    from: 0
+                    to: 360
+                    duration: 1000
+                    loops: Animation.Infinite
+                }
+            }
 
-                    Image {
-                        id: bigSpinner
-                        anchors.fill: parent
-                        source: "assets/images/icons/spinner.png"
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                        antialiasing: true
+            Rectangle {
+                visible: spinner.status === Image.Error
+                anchors.fill: parent
+                radius: width / 2
+                color: "transparent"
+                border.width: vpx(3)
+                border.color: accentColor
 
-                        RotationAnimator on rotation {
-                            running: parent.parent.parent.visible
-                            from: 0
-                            to: 360
-                            duration: 1200
-                            loops: Animation.Infinite
-                        }
-                    }
+                RotationAnimator on rotation {
+                    running: parent.visible
+                    from: 0
+                    to: 360
+                    duration: 1000
+                    loops: Animation.Infinite
                 }
 
-                Text {
-                    text: "Searching..."
-                    color: textColor
-                    font.family: condensedFontFamily
-                    font.pixelSize: vpx(24)
-                    font.bold: true
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Text {
-                    text: {
-                        var fieldName = gamesFilter.searchField || "title"
-                        return "Looking for \"" + gamesFilter.searchText + "\" in " + fieldName
-                    }
-                    color: secondaryTextColor
-                    font.family: fontFamily
-                    font.pixelSize: vpx(16)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
-                    width: parent.width * 0.8
+                Rectangle {
+                    width: parent.width / 2
+                    height: vpx(3)
+                    color: accentColor
+                    anchors.centerIn: parent
+                    transformOrigin: Item.Left
                 }
             }
         }
 
-        // Mensaje cuando no hay resultados
-        Item {
-            visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching && gamesFilter.filteredModel.count === 0
-            anchors.centerIn: parent
-            width: parent.width * 0.8
-            height: vpx(250)
-            z: 100
-
-            Column {
-                anchors.centerIn: parent
-                spacing: vpx(20)
-
-                Text {
-                    text: "🔎"
-                    font.pixelSize: vpx(64)
-                    color: secondaryTextColor
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    opacity: 0.5
-
-                    SequentialAnimation on scale {
-                        running: parent.parent.visible
-                        loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.1; duration: 1000; easing.type: Easing.InOutQuad }
-                        NumberAnimation { from: 1.1; to: 1.0; duration: 1000; easing.type: Easing.InOutQuad }
-                    }
-                }
-
-                Text {
-                    text: "No games found"
-                    color: textColor
-                    font.family: condensedFontFamily
-                    font.pixelSize: vpx(24)
-                    font.bold: true
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Text {
-                    text: {
-                        var fieldName = gamesFilter.searchField || "title"
-                        if (gamesFilter.searchText) {
-                            return "No matches for \"" + gamesFilter.searchText + "\" in " + fieldName
-                        }
-                        return "Try a different search term or field"
-                    }
-                    color: secondaryTextColor
-                    font.family: fontFamily
-                    font.pixelSize: vpx(16)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
-                    width: parent.width
+        // Contador de resultados
+        Text {
+            id: resultsCounter
+            visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching
+            text: {
+                var count = gamesFilter.filteredModel.count
+                if (count === 0) {
+                    return "(no results)"
+                } else if (count === 1) {
+                    return "(1 result)"
+                } else {
+                    return "(" + count + " results)"
                 }
             }
+            color: secondaryTextColor
+            font.family: condensedFontFamily
+            font.pixelSize: vpx(18)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+            opacity: 0.8
+        }
+    }
+
+    // Indicador de búsqueda global
+    Text {
+        id: searchModeIndicator
+        visible: gamesFilter.globalSearchMode
+        text: {
+            var fieldName = "title"
+            if (gamesFilter.searchField) {
+                fieldName = gamesFilter.searchField
+            }
+
+            if (gamesFilter.isSearching) {
+                return "🔍 Searching by " + fieldName + " in " + api.allGames.count + " games..."
+            }
+
+            if (gamesFilter.searchText && gamesFilter.searchText.length > 0) {
+                return "🔍 Results for \"" + gamesFilter.searchText + "\" in " + fieldName
+            }
+            return "🔍 Searching across all " + api.allGames.count + " games"
+        }
+        color: secondaryTextColor
+        font.family: fontFamily
+        font.pixelSize: vpx(12)
+        anchors {
+            top: titleRow.bottom
+            left: parent.left
+            right: parent.right
+            margins: vpx(20)
+            topMargin: vpx(5)
+        }
+        opacity: 0.8
+        elide: Text.ElideRight
+    }
+
+    // Contenedor principal
+    Item {
+        anchors {
+            top: gamesFilter.globalSearchMode ? searchModeIndicator.bottom : titleRow.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            margins: vpx(20)
+            topMargin: gamesFilter.globalSearchMode ? vpx(10) : vpx(20)
         }
 
-        // Lista de juegos (estilo lista)
+        // ListView de juegos
         ListView {
             id: gamesList
             anchors.fill: parent
+            anchors.rightMargin: vpx(20)
             clip: true
+            spacing: vpx(10)
+
             model: gamesFilter.filteredModel
             currentIndex: gamesListView.currentIndex
 
@@ -207,37 +292,207 @@ FocusScope {
                 }
             }
 
+            // Mensaje de búsqueda en progreso
+            Item {
+                visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
+                anchors.centerIn: parent
+                width: parent.width * 0.8
+                height: vpx(250)
+                z: 100
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: vpx(25)
+
+                    Item {
+                        width: vpx(80)
+                        height: vpx(80)
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            id: bigSpinner
+                            anchors.fill: parent
+                            source: "assets/images/icons/spinner.png"
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            antialiasing: true
+
+                            RotationAnimator on rotation {
+                                running: parent.parent.parent.visible
+                                from: 0
+                                to: 360
+                                duration: 1200
+                                loops: Animation.Infinite
+                            }
+                        }
+
+                        Rectangle {
+                            visible: bigSpinner.status === Image.Error
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: vpx(6)
+                            border.color: accentColor
+
+                            RotationAnimator on rotation {
+                                running: parent.visible
+                                from: 0
+                                to: 360
+                                duration: 1200
+                                loops: Animation.Infinite
+                            }
+
+                            Rectangle {
+                                width: parent.width / 2
+                                height: vpx(6)
+                                color: accentColor
+                                anchors.centerIn: parent
+                                transformOrigin: Item.Left
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "Searching..."
+                        color: textColor
+                        font.family: condensedFontFamily
+                        font.pixelSize: vpx(24)
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: {
+                            var fieldName = gamesFilter.searchField || "title"
+                            return "Looking for \"" + gamesFilter.searchText + "\" in " + fieldName
+                        }
+                        color: secondaryTextColor
+                        font.family: fontFamily
+                        font.pixelSize: vpx(16)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
+                        width: parent.width * 0.8
+                    }
+                }
+            }
+
+            // Mensaje sin resultados
+            Item {
+                visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching && gamesFilter.filteredModel.count === 0
+                anchors.centerIn: parent
+                width: parent.width * 0.8
+                height: vpx(250)
+                z: 100
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: vpx(20)
+
+                    Text {
+                        text: "🔎"
+                        font.pixelSize: vpx(64)
+                        color: secondaryTextColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        opacity: 0.5
+
+                        SequentialAnimation on scale {
+                            running: parent.parent.visible
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1.0; to: 1.1; duration: 1000; easing.type: Easing.InOutQuad }
+                            NumberAnimation { from: 1.1; to: 1.0; duration: 1000; easing.type: Easing.InOutQuad }
+                        }
+                    }
+
+                    Text {
+                        text: "No games found"
+                        color: textColor
+                        font.family: condensedFontFamily
+                        font.pixelSize: vpx(24)
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: {
+                            var fieldName = gamesFilter.searchField || "title"
+                            if (gamesFilter.searchText) {
+                                return "No matches for \"" + gamesFilter.searchText + "\" in " + fieldName
+                            }
+                            return "Try a different search term or field"
+                        }
+                        color: secondaryTextColor
+                        font.family: fontFamily
+                        font.pixelSize: vpx(16)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
+                        width: parent.width
+                    }
+
+                    Rectangle {
+                        width: vpx(200)
+                        height: vpx(40)
+                        radius: vpx(6)
+                        color: "#333"
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Clear Search (ESC)"
+                            color: secondaryTextColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(14)
+                        }
+                    }
+                }
+            }
+
             delegate: Item {
                 width: gamesList.width
-                height: vpx(120)
+                height: vpx(80)
 
                 readonly property bool isCurrent: index === gamesList.currentIndex
 
                 Rectangle {
                     id: listItem
-                    width: parent.width
-                    height: parent.height - vpx(5)
-                    anchors.centerIn: parent
-
+                    anchors.fill: parent
+                    anchors.margins: vpx(2)
+                    radius: vpx(6)
                     color: {
                         if (isCurrent) {
                             if (root.focusedPanel === "games") {
-                                return accentColor
+                                return Qt.rgba(
+                                    accentColor.r,
+                                    accentColor.g,
+                                    accentColor.b,
+                                    0.2
+                                )
                             } else {
-                                return borderColor
+                                return Qt.rgba(
+                                    borderColor.r,
+                                    borderColor.g,
+                                    borderColor.b,
+                                    0.2
+                                )
                             }
                         }
 
-                        if (mouseArea.containsMouse && mouseArea.pressed === false) {
-                            return "#333333"
+                        if (mouseArea.containsMouse && !mouseArea.pressed) {
+                            return "#1a1a1a"
                         }
 
                         return "transparent"
                     }
 
-                    radius: vpx(6)
+                    border.width: isCurrent ? vpx(2) : vpx(1)
+                    border.color: isCurrent ? accentColor : "#333"
 
                     Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+
+                    Behavior on border.color {
                         ColorAnimation { duration: 150 }
                     }
 
@@ -249,8 +504,8 @@ FocusScope {
                         // Imagen del juego
                         Rectangle {
                             id: gameImageContainer
-                            width: vpx(80)
-                            height: vpx(80)
+                            width: vpx(60)
+                            height: parent.height
                             radius: vpx(4)
                             color: "#222"
                             anchors.verticalCenter: parent.verticalCenter
@@ -274,79 +529,45 @@ FocusScope {
                                         text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
                                         color: textColor
                                         font.family: condensedFontFamily
-                                        font.pixelSize: vpx(32)
+                                        font.pixelSize: vpx(18)
                                         font.bold: true
                                     }
                                 }
                             }
                         }
 
-                        // Información del juego
-                        Column {
-                            width: parent.width - vpx(200)
+                        // Título del juego (centrado verticalmente)
+                        Text {
+                            id: gameTitle
+                            width: parent.width - gameImageContainer.width - itemIco.width - vpx(30)
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: vpx(5)
+                            text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                            color: isCurrent ? accentColor : textColor
+                            font.family: fontFamily
+                            font.pixelSize: vpx(16)
+                            font.bold: true
+                            elide: Text.ElideRight
 
-                            Text {
-                                id: gameTitle
-                                width: parent.width
-                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
-                                color: isCurrent ? "#ffffff" : textColor
-                                font.family: fontFamily
-                                font.pixelSize: vpx(16)
-                                font.bold: true
-                                elide: Text.ElideRight
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
-                                }
-                            }
-
-                            Row {
-                                spacing: vpx(15)
-                                visible: modelData.developer || modelData.releaseYear > 0
-
-                                Text {
-                                    text: modelData.developer ? modelData.developer : "Unknown Developer"
-                                    color: isCurrent ? "#dddddd" : secondaryTextColor
-                                    font.family: condensedFontFamily
-                                    font.pixelSize: vpx(12)
-                                    elide: Text.ElideRight
-                                    width: vpx(200)
-                                }
-
-                                Text {
-                                    visible: modelData.releaseYear > 0
-                                    text: "(" + modelData.releaseYear + ")"
-                                    color: isCurrent ? "#dddddd" : secondaryTextColor
-                                    font.family: condensedFontFamily
-                                    font.pixelSize: vpx(12)
-                                }
-                            }
-
-                            Text {
-                                visible: modelData.genre
-                                text: modelData.genre ? modelData.genre : "Unknown Genre"
-                                color: isCurrent ? "#dddddd" : secondaryTextColor
-                                font.family: condensedFontFamily
-                                font.pixelSize: vpx(12)
-                                elide: Text.ElideRight
-                                width: parent.width
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
                             }
                         }
 
-                        // Controles interactivos (mismo que GridView)
+                        // Controles interactivos
                         Row {
                             id: itemIco
-                            spacing: vpx(10)
+                            height: parent.height
+                            spacing: vpx(12)
+                            visible: isCurrent
                             anchors.verticalCenter: parent.verticalCenter
 
                             // History icon
                             Item {
                                 id: historyItem
-                                width: vpx(26)
-                                height: vpx(26)
+                                width: vpx(28)
+                                height: vpx(28)
                                 visible: modelData.lastPlayed && modelData.lastPlayed.toString() !== "Invalid Date"
+                                anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
                                     anchors.fill: parent
@@ -361,8 +582,9 @@ FocusScope {
                             // Favorite icon
                             Item {
                                 id: favoriteItem
-                                width: vpx(26)
-                                height: vpx(26)
+                                width: vpx(28)
+                                height: vpx(28)
+                                anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
                                     id: favoriteIcon
@@ -415,8 +637,9 @@ FocusScope {
                             // Play icon
                             Item {
                                 id: playItem
-                                width: vpx(26)
-                                height: vpx(26)
+                                width: vpx(28)
+                                height: vpx(28)
+                                anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
                                     id: playIcon
@@ -464,43 +687,6 @@ FocusScope {
                                 }
                             }
                         }
-
-                        // Información adicional a la derecha
-                        Column {
-                            width: vpx(100)
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: vpx(3)
-
-                            Text {
-                                visible: modelData.rating > 0
-                                text: "Rating: " + Math.round(modelData.rating * 100) + "%"
-                                color: isCurrent ? "#dddddd" : secondaryTextColor
-                                font.family: condensedFontFamily
-                                font.pixelSize: vpx(11)
-                                horizontalAlignment: Text.AlignRight
-                                width: parent.width
-                            }
-
-                            Text {
-                                visible: modelData.playCount > 0
-                                text: "Plays: " + modelData.playCount
-                                color: isCurrent ? "#dddddd" : secondaryTextColor
-                                font.family: condensedFontFamily
-                                font.pixelSize: vpx(11)
-                                horizontalAlignment: Text.AlignRight
-                                width: parent.width
-                            }
-
-                            Text {
-                                visible: modelData.playTime > 0
-                                text: "Time: " + Utils.formatPlayTime(modelData.playTime)
-                                color: isCurrent ? "#dddddd" : secondaryTextColor
-                                font.family: condensedFontFamily
-                                font.pixelSize: vpx(11)
-                                horizontalAlignment: Text.AlignRight
-                                width: parent.width
-                            }
-                        }
                     }
 
                     MouseArea {
@@ -523,46 +709,47 @@ FocusScope {
                 }
             }
         }
-    }
 
-    // Scrollbar
-    Rectangle {
-        id: scrollBar
-        anchors {
-            right: parent.right
-            top: parent.top
-            bottom: parent.bottom
-            rightMargin: vpx(6)
-        }
-        width: vpx(6)
-        radius: width / 2
-        color: "#555"
-        opacity: gamesList.moving || gamesList.flicking ? 0.8 : 0.3
-        visible: gamesList.contentHeight > gamesList.height
-
-        Behavior on opacity {
-            NumberAnimation { duration: 200 }
-        }
-
+        // Scrollbar
         Rectangle {
-            id: scrollHandle
+            id: scrollBar
             anchors {
-                left: parent.left
                 right: parent.right
+                top: parent.top
+                bottom: parent.bottom
             }
-            height: Math.max(vpx(30), scrollBar.height * gamesList.visibleArea.heightRatio)
-
-            y: Math.min(
-                Math.max(0, gamesList.visibleArea.yPosition * scrollBar.height),
-                        scrollBar.height - scrollHandle.height
-            )
-
+            width: vpx(6)
             radius: width / 2
-            color: accentColor
+            color: "#555"
+            opacity: gamesList.moving || gamesList.flicking ? 0.8 : 0.3
+            visible: gamesList.contentHeight > gamesList.height
+
+            Behavior on opacity {
+                NumberAnimation { duration: 200 }
+            }
+
+            Rectangle {
+                id: scrollHandle
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                }
+                height: Math.max(vpx(30), scrollBar.height * gamesList.visibleArea.heightRatio)
+
+                y: Math.min(
+                    Math.max(
+                        0,
+                        gamesList.visibleArea.yPosition * scrollBar.height
+                    ),
+                    scrollBar.height - scrollHandle.height
+                )
+
+                radius: width / 2
+                color: accentColor
+            }
         }
     }
 
-    // Navegación con teclado
     Keys.onPressed: {
         if (api.keys.isAccept(event)) {
             event.accepted = true
@@ -578,18 +765,15 @@ FocusScope {
         }
         else if (event.key === Qt.Key_Left) {
             event.accepted = true
-            root.switchToCollectionsPanel()
-        }
-        else if (event.key === Qt.Key_Right) {
-            event.accepted = true
-            // Permanece en la lista
+            if (currentIndex === 0) {
+                root.switchToCollectionsPanel()
+            }
         }
         else if (event.key === Qt.Key_Up) {
             event.accepted = true
             if (currentIndex > 0) {
                 currentIndex--
                 root.currentGameIndex = currentIndex
-                gamesList.forceLayout()
             }
         }
         else if (event.key === Qt.Key_Down) {
@@ -597,7 +781,6 @@ FocusScope {
             if (currentIndex < gamesFilter.filteredModel.count - 1) {
                 currentIndex++
                 root.currentGameIndex = currentIndex
-                gamesList.forceLayout()
             }
         }
         else if (api.keys.isNextPage(event)) {
@@ -607,6 +790,36 @@ FocusScope {
         else if (api.keys.isPrevPage(event)) {
             event.accepted = true
             previousPage()
+        }
+    }
+
+    onCurrentCollectionChanged: {
+        console.log("GamesListView: Collection changed")
+        if (currentCollection && !gamesFilter.globalSearchMode) {
+            console.log("GamesListView: Resetting filter (not in global search)")
+            gamesFilter.resetFilter()
+            currentIndex = 0
+            root.currentGameIndex = 0
+        } else if (gamesFilter.globalSearchMode) {
+            console.log("GamesListView: Collection changed but maintaining global search")
+        }
+    }
+
+    Connections {
+        target: root
+        enabled: !root.isRestoringState
+
+        function onCurrentGameIndexChanged() {
+            if (gamesFilter.filteredModel &&
+                root.currentGameIndex >= 0 &&
+                root.currentGameIndex < gamesFilter.filteredModel.count) {
+
+                if (currentIndex !== root.currentGameIndex) {
+                    currentIndex = root.currentGameIndex
+                }
+
+                root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
+                }
         }
     }
 
@@ -633,6 +846,9 @@ FocusScope {
 
     function updateSearch(searchText, searchField) {
         console.log("GamesListView: Updating search")
+        console.log("  - Text:", searchText)
+        console.log("  - Field:", searchField)
+
         gamesFilter.updateSearch(searchText, searchField)
 
         currentIndex = 0
@@ -640,8 +856,10 @@ FocusScope {
 
         if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
             root.currentGame = gamesFilter.filteredModel.get(0)
+            console.log("GamesListView: First result:", root.currentGame.title)
         } else {
             root.currentGame = null
+            console.log("GamesListView: No results")
         }
 
         ensureCurrentVisible()
@@ -664,7 +882,8 @@ FocusScope {
     }
 
     function nextPage() {
-        var nextIndex = currentIndex + 10 // 10 items por página
+        var itemsPerPage = Math.floor(gamesList.height / vpx(80))
+        var nextIndex = currentIndex + itemsPerPage
         if (nextIndex < gamesFilter.filteredModel.count) {
             currentIndex = nextIndex
             root.currentGameIndex = currentIndex
@@ -675,7 +894,8 @@ FocusScope {
     }
 
     function previousPage() {
-        var prevIndex = currentIndex - 10 // 10 items por página
+        var itemsPerPage = Math.floor(gamesList.height / vpx(80))
+        var prevIndex = currentIndex - itemsPerPage
         if (prevIndex >= 0) {
             currentIndex = prevIndex
             root.currentGameIndex = currentIndex
@@ -686,6 +906,11 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        console.log("GamesListView: Component loaded")
+        console.log("=".repeat(60))
+        console.log("GamesListView: Loaded with interactive controls")
+        console.log("  - Total games available:", api.allGames.count)
+        console.log("  - List layout (simplified)")
+        console.log("  - Interactive: favorite toggle, play button, history indicator")
+        console.log("=".repeat(60))
     }
 }

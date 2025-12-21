@@ -24,6 +24,7 @@ FocusScope {
 
     signal currentGameChanged(var game)
     signal collapseDetailsPanel()
+    signal switchToListView()
 
     GamesFilter {
         id: gamesFilter
@@ -97,6 +98,60 @@ FocusScope {
 
             Behavior on color {
                 ColorAnimation { duration: 200 }
+            }
+        }
+
+        // Ícono para cambiar a ListView
+        Item {
+            width: vpx(28)
+            height: vpx(28)
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.gamesViewMode === "grid"
+
+            Image {
+                id: listViewIcon
+                anchors.fill: parent
+                source: "assets/images/icons/listview.svg"
+                fillMode: Image.PreserveAspectFit
+                mipmap: true
+                opacity: listViewMouseArea.containsMouse ? 1.0 : 0.7
+
+                ColorOverlay {
+                    anchors.fill: parent
+                    source: parent
+                    color: listViewMouseArea.containsMouse ? accentColor : secondaryTextColor
+                    cached: false
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+
+            MouseArea {
+                id: listViewMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    gamesGridView.switchToListView()
+                }
+            }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width + vpx(8)
+                height: parent.height + vpx(8)
+                radius: vpx(4)
+                color: "transparent"
+                border.color: accentColor
+                border.width: vpx(1)
+                opacity: listViewMouseArea.containsMouse ? 0.3 : 0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
             }
         }
 
