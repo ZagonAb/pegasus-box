@@ -23,6 +23,7 @@ FocusScope {
     }
 
     signal currentGameChanged(var game)
+    signal collapseDetailsPanel()
 
     GamesFilter {
         id: gamesFilter
@@ -32,6 +33,17 @@ FocusScope {
         onSearchCompleted: {
             console.log("GamesGridView: Search completed")
         }
+    }
+
+    // MouseArea global para colapsar el panel de detalles al hacer clic
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            gamesGridView.collapseDetailsPanel()
+        }
+        // Permitir que los clicks pasen a los elementos internos
+        propagateComposedEvents: true
+        z: -10
     }
 
     // Fondo del panel
@@ -460,6 +472,7 @@ FocusScope {
                                 }
                             }
                         }
+
                         // Título del juego
                         Text {
                             id: gameTitle
@@ -483,9 +496,7 @@ FocusScope {
                             }
                         }
 
-                        // Controles interactivos (history, favorite, play) - solo visible cuando está seleccionado
-                        // Reemplaza tu Row actual (líneas ~515-595) con esto:
-
+                        // Controles interactivos
                         Row {
                             id: itemIco
                             height: vpx(30)
@@ -494,10 +505,10 @@ FocusScope {
                             anchors {
                                 bottom: parent.bottom
                                 bottomMargin: vpx(8)
-                                horizontalCenter: parent.horizontalCenter  // Esto centra automáticamente
+                                horizontalCenter: parent.horizontalCenter
                             }
 
-                            // History icon - solo visible si lastPlayed es válido
+                            // History icon
                             Item {
                                 id: historyItem
                                 width: vpx(26)
@@ -514,7 +525,7 @@ FocusScope {
                                 }
                             }
 
-                            // Favorite icon - interactivo
+                            // Favorite icon
                             Item {
                                 id: favoriteItem
                                 width: vpx(26)
@@ -568,7 +579,7 @@ FocusScope {
                                 }
                             }
 
-                            // Play icon - interactivo
+                            // Play icon
                             Item {
                                 id: playItem
                                 width: vpx(26)
@@ -626,10 +637,12 @@ FocusScope {
                         id: mouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        z: -1 // Detrás de los controles interactivos
+                        z: -1
 
                         onClicked: {
                             root.selectGameWithMouse(index)
+                            // Colapsar el panel de detalles al seleccionar un juego
+                            gamesGridView.collapseDetailsPanel()
                         }
 
                         onDoubleClicked: {
@@ -685,7 +698,6 @@ FocusScope {
         }
         else if (api.keys.isCancel(event)) {
             event.accepted = true
-            // Si estamos en búsqueda global, limpiarla primero
             if (gamesFilter.globalSearchMode) {
                 gamesFilter.updateSearch("", "title")
             } else {
@@ -736,7 +748,6 @@ FocusScope {
         }
     }
 
-    // Detectar cuando cambia la colección
     onCurrentCollectionChanged: {
         console.log("GamesGridView: Collection changed")
         if (currentCollection && !gamesFilter.globalSearchMode) {

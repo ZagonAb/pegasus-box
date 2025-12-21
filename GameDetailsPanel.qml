@@ -7,13 +7,28 @@ import "utils.js" as Utils
 Item {
     id: gameDetailsPanel
 
+    // Estado de expansión
+    property bool isExpanded: false
+    signal expansionChanged(bool expanded)
+
     property var displayGame: {
-        // Prioridad: juego del grid filtrado
         if (gamesGridView && gamesGridView.currentFilteredGame) {
             return gamesGridView.currentFilteredGame
         }
-        // Fallback: juego actual de root
         return displayGame
+    }
+
+    // MouseArea global para detectar clicks y expandir
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            if (!gameDetailsPanel.isExpanded) {
+                gameDetailsPanel.isExpanded = true
+                gameDetailsPanel.expansionChanged(true)
+            }
+        }
+        // Permitir que los controles internos capturen eventos
+        propagateComposedEvents: true
     }
 
     Rectangle {
@@ -21,22 +36,51 @@ Item {
         anchors.fill: parent
         color: panelColor
         radius: vpx(8)
-        border.width: vpx(2)
-        border.color: borderColor
+        border.width: isExpanded ? vpx(3) : vpx(2)
+        border.color: isExpanded ? accentColor : borderColor
 
         layer.enabled: true
         layer.effect: DropShadow {
             horizontalOffset: 0
             verticalOffset: vpx(4)
-            radius: vpx(12)
+            radius: isExpanded ? vpx(16) : vpx(12)
             samples: 25
-            color: "#40000000"
+            color: isExpanded ? "#60000000" : "#40000000"
+        }
+
+        Behavior on border.width {
+            NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on border.color {
+            ColorAnimation { duration: 300 }
+        }
+    }
+
+    // Indicador de estado expandido
+    Rectangle {
+        visible: isExpanded
+        anchors {
+            top: parent.top
+            right: parent.right
+            margins: vpx(12)
+        }
+        width: vpx(6)
+        height: vpx(6)
+        radius: width / 2
+        color: accentColor
+
+        SequentialAnimation on opacity {
+            running: isExpanded
+            loops: Animation.Infinite
+            NumberAnimation { from: 1.0; to: 0.3; duration: 1000 }
+            NumberAnimation { from: 0.3; to: 1.0; duration: 1000 }
         }
     }
 
     Text {
         id: panelTitle
-        text: "DETAILS"
+        text: isExpanded ? "DETAILS (EXPANDED)" : "DETAILS"
         color: accentColor
         font.family: condensedFontFamily
         font.pixelSize: vpx(24)
@@ -46,6 +90,14 @@ Item {
             left: parent.left
             right: parent.right
             margins: vpx(20)
+        }
+
+        Behavior on text {
+            SequentialAnimation {
+                NumberAnimation { target: panelTitle; property: "opacity"; to: 0; duration: 150 }
+                PropertyAction { target: panelTitle; property: "text" }
+                NumberAnimation { target: panelTitle; property: "opacity"; to: 1; duration: 150 }
+            }
         }
     }
 
@@ -112,7 +164,6 @@ Item {
                     volume: 0.7
                     visible: mediaPreview.currentIsVideo
 
-                    // Cargar volumen guardado al iniciar
                     Component.onCompleted: {
                         var savedVolume = api.memory.get('videoVolume')
                         if (savedVolume !== undefined) {
@@ -149,12 +200,10 @@ Item {
                         visible: mediaPreview.currentIsVideo
                         opacity: 0
 
-                        // Animación de opacidad
                         Behavior on opacity {
                             NumberAnimation { duration: 300 }
                         }
 
-                        // Timer para ocultar controles automáticamente
                         Timer {
                             id: hideControlsTimer
                             interval: 2000
@@ -165,7 +214,6 @@ Item {
                             }
                         }
 
-                        // MouseArea para detectar hover sobre el video
                         MouseArea {
                             id: videoControlsArea
                             anchors.fill: parent
@@ -181,7 +229,6 @@ Item {
                                 hideControlsTimer.restart()
                             }
 
-                            // Permitir que los clicks pasen a los controles internos
                             onPressed: mouse.accepted = false
                         }
 
@@ -189,7 +236,7 @@ Item {
                             anchors.centerIn: parent
                             spacing: vpx(20)
 
-                            // Play/Pause button with SVG icon
+                            // Play/Pause button
                             Item {
                                 width: vpx(32)
                                 height: vpx(32)
@@ -228,7 +275,6 @@ Item {
                                     }
                                 }
 
-                                // Subtle hover effect
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: parent.width + vpx(8)
@@ -254,7 +300,6 @@ Item {
                                     anchors.centerIn: parent
                                     spacing: vpx(10)
 
-                                    // Volume icon
                                     Item {
                                         width: vpx(20)
                                         height: vpx(20)
@@ -291,13 +336,11 @@ Item {
                                                 } else {
                                                     videoPlayer.volume = 0.7
                                                 }
-                                                // Guardar volumen en memoria
                                                 api.memory.set('videoVolume', videoPlayer.volume)
                                             }
                                         }
                                     }
 
-                                    // Volume slider background
                                     Rectangle {
                                         id: volumeSliderBg
                                         width: vpx(80)
@@ -306,7 +349,6 @@ Item {
                                         radius: height / 2
                                         color: "#444444"
 
-                                        // Volume fill
                                         Rectangle {
                                             anchors {
                                                 left: parent.left
@@ -322,7 +364,6 @@ Item {
                                             }
                                         }
 
-                                        // Volume handle
                                         Rectangle {
                                             id: volumeHandle
                                             width: vpx(14)
@@ -343,7 +384,6 @@ Item {
                                                 ColorAnimation { duration: 150 }
                                             }
 
-                                            // Glow effect on hover
                                             layer.enabled: volumeSliderArea.containsMouse
                                             layer.effect: DropShadow {
                                                 horizontalOffset: 0
@@ -372,7 +412,6 @@ Item {
                                             }
 
                                             onReleased: {
-                                                // Guardar volumen en memoria al soltar
                                                 api.memory.set('videoVolume', videoPlayer.volume)
                                             }
 
@@ -387,7 +426,6 @@ Item {
                         }
                     }
 
-                    // MouseArea global para detectar hover sobre todo el video
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
@@ -404,7 +442,6 @@ Item {
                         }
                     }
 
-                    // Mostrar controles al iniciar reproducción
                     onPlaybackStateChanged: {
                         if (playbackState === MediaPlayer.PlayingState) {
                             videoControls.opacity = 1
@@ -412,29 +449,6 @@ Item {
                         }
                     }
                 }
-
-                // Media type indicator
-                /*Rectangle {
-                    anchors {
-                        top: parent.top
-                        right: parent.right
-                        margins: vpx(10)
-                    }
-                    width: vpx(80)
-                    height: vpx(24)
-                    radius: vpx(4)
-                    color: "#CC000000"
-                    visible: mediaPreview.currentMediaType !== ""
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: mediaPreview.currentMediaType
-                        color: accentColor
-                        font.family: condensedFontFamily
-                        font.pixelSize: vpx(11)
-                        font.bold: true
-                    }
-                }*/
             }
 
             // MEDIA PREVIEW THUMBNAILS
@@ -450,7 +464,6 @@ Item {
                         var media = []
                         var assets = displayGame.assets
 
-                        // Helper function to add media items
                         function addMedia(source, type, label) {
                             if (source && source.toString() !== "") {
                                 media.push({
@@ -462,41 +475,24 @@ Item {
                             }
                         }
 
-                        // ORDEN PRIORITARIO: Screenshot, Logo, BoxFront, Background, Video, etc.
-
-                        // 1. Screenshots primero (lo más importante)
                         addMedia(assets.screenshot, "image", "Screenshot")
                         addMedia(assets.titlescreen, "image", "Title Screen")
-
-                        // 2. Logo
                         addMedia(assets.logo, "image", "Logo")
-
-                        // 3. Box assets
                         addMedia(assets.boxFront, "image", "Box Front")
                         addMedia(assets.boxFull, "image", "Box Full")
                         addMedia(assets.boxBack, "image", "Box Back")
                         addMedia(assets.boxSpine, "image", "Box Spine")
-
-                        // 4. Background
                         addMedia(assets.background, "image", "Background")
-
-                        // 5. Video
                         addMedia(assets.video, "video", "Video")
-
-                        // 6. UI assets
                         addMedia(assets.banner, "image", "Banner")
                         addMedia(assets.poster, "image", "Poster")
                         addMedia(assets.tile, "image", "Tile")
                         addMedia(assets.steam, "image", "Steam")
-
-                        // 7. Arcade assets
                         addMedia(assets.marquee, "image", "Marquee")
                         addMedia(assets.bezel, "image", "Bezel")
                         addMedia(assets.panel, "image", "Panel")
                         addMedia(assets.cabinetLeft, "image", "Cabinet L")
                         addMedia(assets.cabinetRight, "image", "Cabinet R")
-
-                        // 8. Otros
                         addMedia(assets.cartridge, "image", "Cartridge")
 
                         return media
@@ -547,7 +543,6 @@ Item {
                                     border.width: mediaPreview.currentMediaIndex === index ? vpx(3) : vpx(1)
                                     border.color: mediaPreview.currentMediaIndex === index ? accentColor : "#555"
 
-                                    // Thumbnail
                                     Image {
                                         anchors.fill: parent
                                         anchors.margins: vpx(2)
@@ -566,7 +561,6 @@ Item {
                                         }
                                     }
 
-                                    // Video indicator
                                     Rectangle {
                                         anchors.fill: parent
                                         anchors.margins: vpx(2)
@@ -582,7 +576,6 @@ Item {
                                         }
                                     }
 
-                                    // Label overlay
                                     Rectangle {
                                         anchors {
                                             left: parent.left

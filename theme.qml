@@ -12,6 +12,9 @@ FocusScope {
     property bool isRestoringState: false
     property string focusedPanel: "collections"
 
+    // Estado de expansión del panel de detalles
+    property bool detailsExpanded: false
+
     signal forceGridUpdate(int collectionIndex, int gameIndex)
 
     property color backgroundColor: "#0a0a0a"
@@ -24,7 +27,6 @@ FocusScope {
     property string condensedFontFamily: global.fonts.condensed
 
     property var currentGame: {
-        // Si hay filtro aplicado, usar el juego del modelo filtrado
         if (gamesGridView && gamesGridView.gamesFilter &&
             gamesGridView.gamesFilter.filteredModel &&
             currentGameIndex >= 0 &&
@@ -36,7 +38,6 @@ FocusScope {
             }
             }
 
-            // Fallback al juego de la colección original
             return currentCollection && currentCollection.games.count > 0 ?
             currentCollection.games.get(currentGameIndex) : null
     }
@@ -70,12 +71,27 @@ FocusScope {
 
             GamesGridView {
                 id: gamesGridView
-                width: parent.width * 0.5 - vpx(10)
+                // Ancho animado: 50% cuando normal, 33% cuando expandido
+                width: detailsExpanded ?
+                parent.width * 0.33 - vpx(10) :
+                parent.width * 0.5 - vpx(10)
                 height: parent.height
                 anchors.left: collectionsPanel.right
                 anchors.leftMargin: vpx(20)
                 currentIndex: root.currentGameIndex
                 focus: root.focusedPanel === "games"
+
+                // Cambiar columnas dinámicamente
+                columns: detailsExpanded ? 3 : 4
+                rows: 3
+
+                // Animación suave del ancho
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 400
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
                 onCurrentIndexChanged: {
                     if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
@@ -87,10 +103,32 @@ FocusScope {
 
             GameDetailsPanel {
                 id: gameDetailsPanel
-                width: parent.width * 0.25 - vpx(10)
+                // Ancho animado: 25% cuando normal, 42% cuando expandido
+                width: detailsExpanded ?
+                parent.width * 0.42 - vpx(10) :
+                parent.width * 0.25 - vpx(10)
                 height: parent.height
                 anchors.left: gamesGridView.right
                 anchors.leftMargin: vpx(20)
+
+                // Animación suave del ancho
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 400
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                // Conectar la señal de expansión
+                onExpansionChanged: {
+                    root.detailsExpanded = expanded
+                    console.log("Details panel expanded:", expanded)
+
+                    // Si se expande, cambiar el foco al panel de detalles
+                    if (expanded) {
+                        root.focusedPanel = "details"
+                    }
+                }
             }
         }
     }
@@ -100,6 +138,13 @@ FocusScope {
         function onFilteredGameChanged(game) {
             if (game && !root.isRestoringState) {
                 root.currentGame = game
+            }
+        }
+
+        function onCollapseDetailsPanel() {
+            if (root.detailsExpanded) {
+                gameDetailsPanel.isExpanded = false
+                root.detailsExpanded = false
             }
         }
     }
@@ -115,18 +160,25 @@ FocusScope {
     }
 
     Keys.onPressed: {
-        if (api.keys.isAccept(event)) {
+        // ESC colapsa el panel de detalles si está expandido
+        if (api.keys.isCancel(event)) {
+            event.accepted = true
+
+            if (detailsExpanded) {
+                // Colapsar panel de detalles
+                gameDetailsPanel.isExpanded = false
+                root.detailsExpanded = false
+                root.focusedPanel = "games"
+            } else if (focusedPanel === "games") {
+                root.switchToCollectionsPanel()
+            }
+        }
+        else if (api.keys.isAccept(event)) {
             event.accepted = true
             if (focusedPanel === "games" && currentGame) {
                 root.launchCurrentGame()
             } else if (focusedPanel === "collections") {
                 root.switchToGamesPanel()
-            }
-        }
-        else if (api.keys.isCancel(event)) {
-            event.accepted = true
-            if (focusedPanel === "games") {
-                root.switchToCollectionsPanel()
             }
         }
         else if (api.keys.isNextPage(event)) {
@@ -165,6 +217,11 @@ FocusScope {
                 root.switchToCollectionsPanel()
             }
         }
+        // Tecla Tab o 'D' para alternar el panel de detalles
+        else if (event.key === Qt.Key_Tab || event.key === Qt.Key_D) {
+            event.accepted = true
+            gameDetailsPanel.isExpanded = !gameDetailsPanel.isExpanded
+        }
     }
 
     Component.onCompleted: {
@@ -194,11 +251,21 @@ FocusScope {
     function switchToGamesPanel() {
         focusedPanel = "games"
         gamesGridView.forceActiveFocus()
+
+        // Colapsar el panel de detalles al volver al grid
+        if (detailsExpanded) {
+            gameDetailsPanel.isExpanded = false
+        }
     }
 
     function switchToCollectionsPanel() {
         focusedPanel = "collections"
         collectionsPanel.forceActiveFocus()
+
+        // Colapsar el panel de detalles
+        if (detailsExpanded) {
+            gameDetailsPanel.isExpanded = false
+        }
     }
 
     function launchCurrentGame() {
@@ -292,7 +359,6 @@ FocusScope {
                 }
 
                 gamesGridView.forceActiveFocus()
-
                 root.isRestoringState = false
         }
     }
@@ -315,6 +381,7 @@ FocusScope {
             root.currentCollectionIndex = 0
         }
     }
+
     function selectCollectionWithMouse(index) {
         isRestoringState = true
 
