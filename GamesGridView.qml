@@ -117,18 +117,6 @@ FocusScope {
                 source: "assets/images/icons/listview.svg"
                 fillMode: Image.PreserveAspectFit
                 mipmap: true
-                opacity: listViewMouseArea.containsMouse ? 1.0 : 0.7
-
-                ColorOverlay {
-                    anchors.fill: parent
-                    source: parent
-                    color: listViewMouseArea.containsMouse ? accentColor : secondaryTextColor
-                    cached: false
-                }
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 150 }
-                }
             }
 
             MouseArea {

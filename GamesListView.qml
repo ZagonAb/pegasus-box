@@ -113,18 +113,6 @@ FocusScope {
                 source: "assets/images/icons/gridview.svg"
                 fillMode: Image.PreserveAspectFit
                 mipmap: true
-                opacity: gridViewMouseArea.containsMouse ? 1.0 : 0.7
-
-                ColorOverlay {
-                    anchors.fill: parent
-                    source: parent
-                    color: gridViewMouseArea.containsMouse ? accentColor : secondaryTextColor
-                    cached: false
-                }
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 150 }
-                }
             }
 
             MouseArea {
