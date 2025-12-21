@@ -30,13 +30,10 @@ FocusScope {
     property string condensedFontFamily: global.fonts.condensed
 
     property var currentGame: {
-        var activeView = gamesViewMode === "grid" ? gamesGridView : gamesListView
-        if (activeView && activeView.gamesFilter &&
-            activeView.gamesFilter.filteredModel &&
+        if (sharedGamesFilter.filteredModel &&
             currentGameIndex >= 0 &&
-            currentGameIndex < activeView.gamesFilter.filteredModel.count) {
-
-            var filteredGame = activeView.gamesFilter.filteredModel.get(currentGameIndex)
+            currentGameIndex < sharedGamesFilter.filteredModel.count) {
+            var filteredGame = sharedGamesFilter.filteredModel.get(currentGameIndex)
             if (filteredGame) {
                 return filteredGame
             }
@@ -44,6 +41,19 @@ FocusScope {
 
             return currentCollection && currentCollection.games.count > 0 ?
             currentCollection.games.get(currentGameIndex) : null
+    }
+
+    // ============================================
+    // FILTRO COMPARTIDO - ESTA ES LA CLAVE
+    // ============================================
+    GamesFilter {
+        id: sharedGamesFilter
+        sourceModel: root.currentCollection ? root.currentCollection.games : null
+        globalSearchMode: false
+
+        onSearchCompleted: {
+            console.log("SharedGamesFilter: Search completed")
+        }
     }
 
     Rectangle {
@@ -87,6 +97,9 @@ FocusScope {
                 currentIndex: root.currentGameIndex
                 focus: root.focusedPanel === "games" && visible
 
+                // PASAR EL FILTRO COMPARTIDO
+                sharedFilter: sharedGamesFilter
+
                 columns: detailsExpanded ? 3 : 4
                 rows: 3
 
@@ -129,6 +142,9 @@ FocusScope {
                 anchors.leftMargin: vpx(20)
                 currentIndex: root.currentGameIndex
                 focus: root.focusedPanel === "games" && visible
+
+                // PASAR EL FILTRO COMPARTIDO
+                sharedFilter: sharedGamesFilter
 
                 Behavior on width {
                     NumberAnimation {

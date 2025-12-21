@@ -14,6 +14,19 @@ FocusScope {
 
     property var currentCollection: root.currentCollection
 
+    // USAR EL FILTRO COMPARTIDO EN LUGAR DE UNO PROPIO
+    property var sharedFilter: null
+    property alias gamesFilter: filterAlias
+
+    QtObject {
+        id: filterAlias
+        property var filteredModel: sharedFilter ? sharedFilter.filteredModel : null
+        property bool globalSearchMode: sharedFilter ? sharedFilter.globalSearchMode : false
+        property bool isSearching: sharedFilter ? sharedFilter.isSearching : false
+        property string searchText: sharedFilter ? sharedFilter.searchText : ""
+        property string searchField: sharedFilter ? sharedFilter.searchField : "title"
+    }
+
     property var currentFilteredGame: {
         if (gamesFilter.filteredModel && currentIndex >= 0 &&
             currentIndex < gamesFilter.filteredModel.count) {
@@ -25,16 +38,6 @@ FocusScope {
     signal currentGameChanged(var game)
     signal collapseDetailsPanel()
     signal switchToListView()
-
-    GamesFilter {
-        id: gamesFilter
-        sourceModel: root.currentCollection ? root.currentCollection.games : null
-        globalSearchMode: false
-
-        onSearchCompleted: {
-            console.log("GamesGridView: Search completed")
-        }
-    }
 
     // MouseArea global para colapsar el panel de detalles al hacer clic
     MouseArea {
@@ -211,7 +214,7 @@ FocusScope {
             id: resultsCounter
             visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching
             text: {
-                var count = gamesFilter.filteredModel.count
+                var count = gamesFilter.filteredModel ? gamesFilter.filteredModel.count : 0
                 if (count === 0) {
                     return "(no results)"
                 } else if (count === 1) {
@@ -298,7 +301,7 @@ FocusScope {
                 }
 
                 onCurrentIndexChanged: {
-                    if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
+                    if (currentIndex >= 0 && currentIndex < count) {
                         positionViewAtIndex(currentIndex, GridView.Contain)
                     }
                 }
@@ -391,7 +394,8 @@ FocusScope {
 
                 // Mensaje cuando no hay resultados en búsqueda global
                 Item {
-                    visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching && gamesFilter.filteredModel.count === 0
+                    visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching &&
+                    gamesFilter.filteredModel && gamesFilter.filteredModel.count === 0
                     anchors.centerIn: parent
                     width: parent.width * 0.8
                     height: vpx(250)
@@ -754,7 +758,7 @@ FocusScope {
         else if (api.keys.isCancel(event)) {
             event.accepted = true
             if (gamesFilter.globalSearchMode) {
-                gamesFilter.updateSearch("", "title")
+                if (sharedFilter) sharedFilter.updateSearch("", "title")
             } else {
                 root.switchToCollectionsPanel()
             }
@@ -771,7 +775,7 @@ FocusScope {
         }
         else if (event.key === Qt.Key_Right) {
             event.accepted = true
-            if (currentIndex < gamesFilter.filteredModel.count - 1) {
+            if (gamesFilter.filteredModel && currentIndex < gamesFilter.filteredModel.count - 1) {
                 currentIndex++
                 root.currentGameIndex = currentIndex
                 gamesGrid.forceLayout()
@@ -787,7 +791,7 @@ FocusScope {
         }
         else if (event.key === Qt.Key_Down) {
             event.accepted = true
-            if (currentIndex + columns < gamesFilter.filteredModel.count) {
+            if (gamesFilter.filteredModel && currentIndex + columns < gamesFilter.filteredModel.count) {
                 currentIndex += columns
                 root.currentGameIndex = currentIndex
                 gamesGrid.forceLayout()
@@ -806,8 +810,7 @@ FocusScope {
     onCurrentCollectionChanged: {
         console.log("GamesGridView: Collection changed")
         if (currentCollection && !gamesFilter.globalSearchMode) {
-            console.log("GamesGridView: Resetting filter (not in global search)")
-            gamesFilter.resetFilter()
+            console.log("GamesGridView: Resetting current index (not in global search)")
             currentIndex = 0
             root.currentGameIndex = 0
             gamesGrid.forceLayout()
@@ -836,23 +839,23 @@ FocusScope {
 
     function resetAllFilters() {
         console.log("GamesGridView: Resetting all filters")
-        resetFilter()
+        if (sharedFilter) sharedFilter.resetFilter()
     }
 
     function updateFilter(filterType) {
         console.log("GamesGridView: Updating filter to", filterType)
-        gamesFilter.updateFilter(filterType)
+        if (sharedFilter) sharedFilter.updateFilter(filterType)
 
-        currentIndex = 0
-        root.currentGameIndex = 0
+            currentIndex = 0
+            root.currentGameIndex = 0
 
-        if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
-            root.currentGame = gamesFilter.filteredModel.get(0)
-        } else {
-            root.currentGame = null
-        }
+            if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
+                root.currentGame = gamesFilter.filteredModel.get(0)
+            } else {
+                root.currentGame = null
+            }
 
-        ensureCurrentVisible()
+            ensureCurrentVisible()
     }
 
     function updateSearch(searchText, searchField) {
@@ -860,47 +863,49 @@ FocusScope {
         console.log("  - Text:", searchText)
         console.log("  - Field:", searchField)
 
-        gamesFilter.updateSearch(searchText, searchField)
+        if (sharedFilter) sharedFilter.updateSearch(searchText, searchField)
 
-        currentIndex = 0
-        root.currentGameIndex = 0
+            currentIndex = 0
+            root.currentGameIndex = 0
 
-        if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
-            root.currentGame = gamesFilter.filteredModel.get(0)
-            console.log("GamesGridView: First result:", root.currentGame.title)
-        } else {
-            root.currentGame = null
-            console.log("GamesGridView: No results")
-        }
+            if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
+                root.currentGame = gamesFilter.filteredModel.get(0)
+                console.log("GamesGridView: First result:", root.currentGame.title)
+            } else {
+                root.currentGame = null
+                console.log("GamesGridView: No results")
+            }
 
-        ensureCurrentVisible()
+            ensureCurrentVisible()
     }
 
     function resetFilter() {
         console.log("GamesGridView: Resetting filter")
-        gamesFilter.resetFilter()
+        if (sharedFilter) sharedFilter.resetFilter()
 
-        currentIndex = 0
-        root.currentGameIndex = 0
+            currentIndex = 0
+            root.currentGameIndex = 0
 
-        ensureCurrentVisible()
+            ensureCurrentVisible()
     }
 
     function ensureCurrentVisible() {
-        if (currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
+        if (gamesFilter.filteredModel && currentIndex >= 0 && currentIndex < gamesFilter.filteredModel.count) {
             gamesGrid.positionViewAtIndex(currentIndex, GridView.Contain)
         }
     }
 
     function nextPage() {
-        var nextIndex = currentIndex + (columns * rows)
-        if (nextIndex < gamesFilter.filteredModel.count) {
-            currentIndex = nextIndex
-            root.currentGameIndex = currentIndex
-        } else {
-            currentIndex = gamesFilter.filteredModel.count - 1
-            root.currentGameIndex = currentIndex
-        }
+        if (!gamesFilter.filteredModel) return
+
+            var nextIndex = currentIndex + (columns * rows)
+            if (nextIndex < gamesFilter.filteredModel.count) {
+                currentIndex = nextIndex
+                root.currentGameIndex = currentIndex
+            } else {
+                currentIndex = gamesFilter.filteredModel.count - 1
+                root.currentGameIndex = currentIndex
+            }
     }
 
     function previousPage() {
@@ -916,10 +921,10 @@ FocusScope {
 
     Component.onCompleted: {
         console.log("=".repeat(60))
-        console.log("GamesGridView: Loaded with interactive controls")
+        console.log("GamesGridView: Loaded with SHARED filter")
         console.log("  - Total games available:", api.allGames.count)
         console.log("  - Grid layout:", columns, "x", rows)
-        console.log("  - Interactive: favorite toggle, play button, history indicator")
+        console.log("  - Using centralized GamesFilter from theme.qml")
         console.log("=".repeat(60))
     }
 }
