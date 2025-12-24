@@ -38,12 +38,44 @@ FocusScope {
     }
 
     property var currentFilteredGame: {
-        if (sharedGamesFilter.filteredModel &&
-            currentGameIndex >= 0 &&
-            currentGameIndex < sharedGamesFilter.filteredModel.count) {
-            return sharedGamesFilter.filteredModel.get(currentGameIndex)
+        console.log("=== Updating currentFilteredGame ===")
+        console.log("Global search mode:", sharedGamesFilter.globalSearchMode)
+        console.log("Current game index:", currentGameIndex)
+
+        if (sharedGamesFilter && sharedGamesFilter.filteredModel) {
+            if (currentGameIndex >= 0 && currentGameIndex < sharedGamesFilter.filteredModel.count) {
+                var game = sharedGamesFilter.filteredModel.get(currentGameIndex)
+                if (game) {
+                    console.log("Current filtered game set to:", game.title)
+                    console.log("Has launch method?", typeof game.launch === "function")
+                    return game
+                }
             }
-            return null
+        }
+
+        console.log("No filtered game available")
+        return null
+    }
+
+    property var currentFilteredGameExact: {
+        if (sharedGamesFilter && sharedGamesFilter.filteredModel &&
+            currentGameIndex >= 0 && currentGameIndex < sharedGamesFilter.filteredModel.count) {
+            var game = sharedGamesFilter.filteredModel.get(currentGameIndex);
+
+        if (game && game.collections) {
+            console.log("=== Current Filtered Game Info ===");
+            console.log("Title:", game.title);
+            console.log("ID:", game.id);
+            console.log("Collections count:", game.collections.count);
+            for (var i = 0; i < game.collections.count; i++) {
+                var col = game.collections.get(i);
+                console.log("  Collection", i + 1, ":", col.name);
+            }
+        }
+
+        return game;
+            }
+            return null;
     }
 
     signal forceGridUpdate(int collectionIndex, int gameIndex)
@@ -55,6 +87,32 @@ FocusScope {
 
         onSearchCompleted: {
             console.log("SharedGamesFilter: Search completed")
+        }
+    }
+
+    Timer {
+        id: launchTimer
+        interval: 700
+        repeat: false
+        onTriggered: {
+            console.log("=== Launch Timer Triggered ===");
+
+            var gameToLaunch = currentFilteredGameExact || currentGame;
+            if (!gameToLaunch) {
+                console.error("No game to launch");
+                return;
+            }
+
+            console.log("Launching game via timer:", gameToLaunch.title);
+
+            api.memory.set('lastCollectionIndex', currentCollectionIndex);
+            api.memory.set('lastGameTitle', gameToLaunch.title);
+
+            var success = Utils.launchExactGame(gameToLaunch, api);
+
+            if (!success) {
+                console.error("Failed to launch game via timer");
+            }
         }
     }
 
@@ -243,9 +301,10 @@ FocusScope {
                 root.switchToCollectionsPanel()
             }
         }
+
         else if (api.keys.isAccept(event)) {
             event.accepted = true
-            if (focusedPanel === "games" && currentGame) {
+            if (root.focusedPanel === "games" && currentFilteredGame) {
                 root.launchCurrentGame()
             } else if (focusedPanel === "collections") {
                 root.switchToGamesPanel()
@@ -316,6 +375,10 @@ FocusScope {
     }
 
     Component.onCompleted: {
+        console.log("Theme loaded, checking utils.js functions");
+        console.log("Utils.launchExactGame available?", typeof Utils.launchExactGame === "function");
+        console.log("Utils.getNameCollecForGame available?", typeof Utils.getNameCollecForGame === "function");
+
         var savedViewMode = api.memory.get('gamesViewMode')
         if (savedViewMode === "list" || savedViewMode === "grid") {
             root.gamesViewMode = savedViewMode
@@ -369,10 +432,57 @@ FocusScope {
     }
 
     function launchCurrentGame() {
-        if (currentGame) {
-            root.saveState("game_launched")
-            currentGame.launch()
+        console.log("=== launchCurrentGame() - Starting timer ===");
+        launchTimer.restart();
+    }
+
+    function findAndLaunchInAllCollections(game) {
+        console.log("Using improved search for:", game.title);
+        Utils.launchExactGame(game, api);
+    }
+
+    function findAndLaunchInCurrentCollection(game) {
+        console.log("Searching in current collection for:", game.title);
+        Utils.launchExactGame(game, api);
+    }
+
+    function launchGameFromCollection(game) {
+        if (!game || !currentCollection) {
+            console.error("Cannot launch: no game or no collection")
+            return
         }
+
+        console.log("Attempting to find game in collection:", game.title)
+
+        if (game.id) {
+            for (var i = 0; i < currentCollection.games.count; i++) {
+                var collectionGame = currentCollection.games.get(i)
+                if (collectionGame && collectionGame.id === game.id) {
+                    console.log("Found game by ID, launching...")
+                    collectionGame.launch()
+                    return
+                }
+            }
+        }
+
+        if (game.title) {
+            for (var j = 0; j < currentCollection.games.count; j++) {
+                var collectionGame2 = currentCollection.games.get(j)
+                if (collectionGame2 && collectionGame2.title === game.title) {
+                    console.log("Found game by title, launching...")
+                    collectionGame2.launch()
+                    return
+                }
+            }
+        }
+
+        if (currentCollection.games.count > 0) {
+            console.log("Could not find exact match, launching first game in collection")
+            currentCollection.games.get(0).launch()
+            return
+        }
+
+        console.error("Could not find any game to launch")
     }
 
     function saveState(reason) {

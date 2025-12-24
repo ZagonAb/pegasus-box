@@ -174,8 +174,6 @@ function getFilterAvailability(collection) {
     var hasLastPlayed = false
     var hasRating = false
     var hasYear = false
-
-    // Contadores para debug
     var totalGames = collection.games.count
     var favoritesCount = 0
     var lastPlayedCount = 0
@@ -231,20 +229,15 @@ function applyGameFilter(games, filterType) {
 
         switch(filterType) {
             case "Favorites":
-                // Filtrar solo favoritos
                 return filterGamesByFavorite(games, true)
             case "Last Played":
-                // Ordenar por último jugado
                 return sortGamesByLastPlayed(games)
             case "Top Rating":
-                // Ordenar por rating
                 return sortGamesByRating(games)
             case "Year":
-                // Ordenar por año
                 return sortGamesByYear(games)
             case "All Games":
             default:
-                // Ordenar alfabéticamente
                 return sortGamesAlphabetically(games)
         }
 }
@@ -269,7 +262,6 @@ function sortGamesByLastPlayed(games) {
         }
     }
 
-    // Ordenar por fecha (más reciente primero)
     gameArray.sort(function(a, b) {
         var timeA = a.lastPlayed.getTime()
         var timeB = b.lastPlayed.getTime()
@@ -288,7 +280,6 @@ function sortGamesByRating(games) {
         }
     }
 
-    // Ordenar por rating (más alto primero)
     gameArray.sort(function(a, b) {
         return b.rating - a.rating
     })
@@ -305,7 +296,6 @@ function sortGamesByYear(games) {
         }
     }
 
-    // Ordenar por año (más reciente primero)
     gameArray.sort(function(a, b) {
         return b.releaseYear - a.releaseYear
     })
@@ -322,7 +312,6 @@ function sortGamesAlphabetically(games) {
         }
     }
 
-    // Ordenar alfabéticamente por título
     gameArray.sort(function(a, b) {
         var titleA = a.title || ""
         var titleB = b.title || ""
@@ -348,7 +337,6 @@ function countFavorites(games) {
 function hasRecentlyPlayed(games) {
     if (!games || games.count === 0) return false
 
-        // Considerar "recientemente jugado" si se jugó en los últimos 30 días
         var thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -406,4 +394,108 @@ function getFirstGenre(gameData) {
 
     var cleanedGenres = cleanAndSplitGenres(gameData.genre);
     return cleanedGenres.length > 0 ? cleanedGenres[0] : "Unknown";
+}
+
+function getNameCollecForGame(game, api) {
+    if (game && game.collections && game.collections.count > 0) {
+        var firstCollection = game.collections.get(0);
+        for (var i = 0; i < api.collections.count; ++i) {
+            var collection = api.collections.get(i);
+            if (collection.name === firstCollection.name) {
+                return collection.name;
+            }
+        }
+    }
+    return "default";
+}
+
+function getCollectionsForGame(game, api) {
+    var result = [];
+    if (game && game.collections && game.collections.count > 0) {
+        for (var i = 0; i < game.collections.count; i++) {
+            var gameCollection = game.collections.get(i);
+            for (var j = 0; j < api.collections.count; j++) {
+                var collection = api.collections.get(j);
+                if (collection.name === gameCollection.name) {
+                    result.push(collection);
+                    break;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+function launchExactGame(gameToLaunch, api) {
+    if (!gameToLaunch || !gameToLaunch.title) {
+        console.error("Cannot launch: invalid game");
+        return false;
+    }
+
+    console.log("=== Searching for exact game ===");
+    console.log("Game title:", gameToLaunch.title);
+    console.log("Game ID:", gameToLaunch.id);
+
+    if (typeof gameToLaunch.launch === "function") {
+        console.log("Game has direct launch method");
+        gameToLaunch.launch();
+        return true;
+    }
+
+    if (gameToLaunch.collections && gameToLaunch.collections.count > 0) {
+        console.log("Game belongs to", gameToLaunch.collections.count, "collection(s)");
+
+        for (var i = 0; i < gameToLaunch.collections.count; i++) {
+            var gameCollection = gameToLaunch.collections.get(i);
+            console.log("Searching in collection:", gameCollection.name);
+
+            for (var colIndex = 0; colIndex < api.collections.count; colIndex++) {
+                var collection = api.collections.get(colIndex);
+                if (collection.name === gameCollection.name) {
+                    console.log("Found matching collection:", collection.name);
+
+                    if (gameToLaunch.id) {
+                        for (var j = 0; j < collection.games.count; j++) {
+                            var game = collection.games.get(j);
+                            if (game && game.id === gameToLaunch.id) {
+                                console.log("✓ Found exact game by ID");
+                                game.launch();
+                                return true;
+                            }
+                        }
+                    }
+
+                    for (var k = 0; k < collection.games.count; k++) {
+                        var game = collection.games.get(k);
+                        if (game && game.title === gameToLaunch.title) {
+                            var isSameGame = true;
+
+                            if (gameToLaunch.developer && game.developer) {
+                                if (gameToLaunch.developer !== game.developer) {
+                                    console.log("Developer mismatch:", gameToLaunch.developer, "vs", game.developer);
+                                    isSameGame = false;
+                                }
+                            }
+
+                            if (gameToLaunch.releaseYear && game.releaseYear) {
+                                if (gameToLaunch.releaseYear !== game.releaseYear) {
+                                    console.log("Year mismatch:", gameToLaunch.releaseYear, "vs", game.releaseYear);
+                                    isSameGame = false;
+                                }
+                            }
+
+                            if (isSameGame) {
+                                console.log("✓ Found exact game by title and metadata");
+                                game.launch();
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    console.error("✗ Could not find exact game in its collections");
+    return false;
 }

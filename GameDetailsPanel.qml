@@ -841,10 +841,24 @@ Item {
                     hoverEnabled: true
                     onClicked: {
                         if (displayGame) {
-                            root.launchCurrentGame()
+                            console.log("Launch button clicked for:", displayGame.title);
+
+                            if (displayGame.collections) {
+                                console.log("Display game collections:", displayGame.collections.count);
+                                for (var i = 0; i < displayGame.collections.count; i++) {
+                                    var col = displayGame.collections.get(i);
+                                    console.log("  -", col.name);
+                                }
+                            }
+
+                            var success = Utils.launchExactGame(displayGame, api);
+
+                            if (!success) {
+                                console.log("Fallback: calling root.launchCurrentGame()");
+                                root.launchCurrentGame();
+                            }
                         }
                     }
-
                     onEntered: launchButton.opacity = 0.8
                     onExited: launchButton.opacity = 1
                     onPressed: launchButton.opacity = 0.6
