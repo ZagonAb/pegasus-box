@@ -7,18 +7,11 @@ import "utils.js" as Utils
 Item {
     id: gameDetailsPanel
 
-    // Estado de expansión
     property bool isExpanded: false
+    property var displayGame: root.currentFilteredGame
+
     signal expansionChanged(bool expanded)
 
-    property var displayGame: {
-        if (gamesGridView && gamesGridView.currentFilteredGame) {
-            return gamesGridView.currentFilteredGame
-        }
-        return displayGame
-    }
-
-    // MouseArea global para detectar clicks y expandir
     MouseArea {
         anchors.fill: parent
         onClicked: {
@@ -27,7 +20,6 @@ Item {
                 gameDetailsPanel.expansionChanged(true)
             }
         }
-        // Permitir que los controles internos capturen eventos
         propagateComposedEvents: true
     }
 
@@ -57,7 +49,6 @@ Item {
         }
     }
 
-    // Indicador de estado expandido
     Rectangle {
         visible: isExpanded
         anchors {
@@ -121,14 +112,12 @@ Item {
             width: parent.width
             spacing: vpx(20)
 
-            // MAIN MEDIA VIEWER
             Rectangle {
                 width: parent.width
                 height: width * 0.75
                 radius: vpx(6)
                 color: "#222"
 
-                // IMAGE VIEWER
                 Image {
                     id: gameImage
                     anchors.fill: parent
@@ -153,7 +142,6 @@ Item {
                     }
                 }
 
-                // VIDEO PLAYER
                 Video {
                     id: videoPlayer
                     anchors.fill: parent
@@ -187,7 +175,6 @@ Item {
                         }
                     }
 
-                    // Video controls overlay
                     Rectangle {
                         id: videoControls
                         anchors {
@@ -236,7 +223,6 @@ Item {
                             anchors.centerIn: parent
                             spacing: vpx(20)
 
-                            // Play/Pause button
                             Item {
                                 width: vpx(32)
                                 height: vpx(32)
@@ -291,7 +277,6 @@ Item {
                                 }
                             }
 
-                            // Volume control
                             Item {
                                 width: vpx(120)
                                 height: vpx(32)
@@ -451,7 +436,6 @@ Item {
                 }
             }
 
-            // MEDIA PREVIEW THUMBNAILS
             Item {
                 id: mediaPreview
                 width: parent.width
@@ -634,9 +618,8 @@ Item {
             Text {
                 id: filterIndicator
                 width: parent.width
-                text: gamesGridView && gamesGridView.gamesFilter &&
-                gamesGridView.gamesFilter.currentFilter !== "All Games" ?
-                "Filter: " + gamesGridView.gamesFilter.currentFilter : ""
+                text: sharedGamesFilter && sharedGamesFilter.currentFilter !== "All Games" ?
+                "Filter: " + sharedGamesFilter.currentFilter : ""
                 color: accentColor
                 font.family: condensedFontFamily
                 font.pixelSize: vpx(14)

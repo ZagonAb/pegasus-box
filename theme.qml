@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import QtQuick.Layouts 1.15
 import SortFilterProxyModel 0.2
 import "utils.js" as Utils
 
@@ -11,15 +12,8 @@ FocusScope {
     property var currentCollection: api.collections.count > 0 ? api.collections.get(currentCollectionIndex) : null
     property bool isRestoringState: false
     property string focusedPanel: "collections"
-
-    // Estado de expansión del panel de detalles
     property bool detailsExpanded: false
-
-    // Estado de la vista: "grid" o "list"
     property string gamesViewMode: "grid"
-
-    signal forceGridUpdate(int collectionIndex, int gameIndex)
-
     property color backgroundColor: "#0a0a0a"
     property color panelColor: "#1a1a1a"
     property color accentColor: "#0078d7"
@@ -43,9 +37,17 @@ FocusScope {
             currentCollection.games.get(currentGameIndex) : null
     }
 
-    // ============================================
-    // FILTRO COMPARTIDO - ESTA ES LA CLAVE
-    // ============================================
+    property var currentFilteredGame: {
+        if (sharedGamesFilter.filteredModel &&
+            currentGameIndex >= 0 &&
+            currentGameIndex < sharedGamesFilter.filteredModel.count) {
+            return sharedGamesFilter.filteredModel.get(currentGameIndex)
+            }
+            return null
+    }
+
+    signal forceGridUpdate(int collectionIndex, int gameIndex)
+
     GamesFilter {
         id: sharedGamesFilter
         sourceModel: root.currentCollection ? root.currentCollection.games : null
@@ -61,17 +63,15 @@ FocusScope {
         anchors.fill: parent
         color: backgroundColor
 
-        Item {
-            anchors {
-                fill: parent
-                margins: vpx(20)
-            }
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: root.width * 0.01
+            spacing: root.width * 0.01
 
             CollectionsPanel {
                 id: collectionsPanel
-                width: parent.width * 0.25 - vpx(10)
-                height: parent.height
-                anchors.left: parent.left
+                Layout.preferredWidth: root.width * 0.24
+                Layout.fillHeight: true
                 currentIndex: root.currentCollectionIndex
                 focus: root.focusedPanel === "collections"
 
@@ -83,27 +83,21 @@ FocusScope {
                 }
             }
 
-            // GridView (visible cuando gamesViewMode === "grid")
             GamesGridView {
                 id: gamesGridView
                 visible: gamesViewMode === "grid"
                 opacity: visible ? 1.0 : 0.0
-                width: detailsExpanded ?
-                parent.width * 0.33 - vpx(10) :
-                parent.width * 0.5 - vpx(10)
-                height: parent.height
-                anchors.left: collectionsPanel.right
-                anchors.leftMargin: vpx(20)
+                Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
+                Layout.fillHeight: true
                 currentIndex: root.currentGameIndex
                 focus: root.focusedPanel === "games" && visible
 
-                // PASAR EL FILTRO COMPARTIDO
                 sharedFilter: sharedGamesFilter
 
                 columns: detailsExpanded ? 3 : 4
                 rows: 3
 
-                Behavior on width {
+                Behavior on Layout.preferredWidth {
                     NumberAnimation {
                         duration: 400
                         easing.type: Easing.OutCubic
@@ -129,24 +123,18 @@ FocusScope {
                 }
             }
 
-            // ListView (visible cuando gamesViewMode === "list")
             GamesListView {
                 id: gamesListView
                 visible: gamesViewMode === "list"
                 opacity: visible ? 1.0 : 0.0
-                width: detailsExpanded ?
-                parent.width * 0.33 - vpx(10) :
-                parent.width * 0.5 - vpx(10)
-                height: parent.height
-                anchors.left: collectionsPanel.right
-                anchors.leftMargin: vpx(20)
+                Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
+                Layout.fillHeight: true
                 currentIndex: root.currentGameIndex
                 focus: root.focusedPanel === "games" && visible
 
-                // PASAR EL FILTRO COMPARTIDO
                 sharedFilter: sharedGamesFilter
 
-                Behavior on width {
+                Behavior on Layout.preferredWidth {
                     NumberAnimation {
                         duration: 400
                         easing.type: Easing.OutCubic
@@ -174,14 +162,11 @@ FocusScope {
 
             GameDetailsPanel {
                 id: gameDetailsPanel
-                width: detailsExpanded ?
-                parent.width * 0.42 - vpx(10) :
-                parent.width * 0.25 - vpx(10)
-                height: parent.height
-                anchors.left: gamesViewMode === "grid" ? gamesGridView.right : gamesListView.right
-                anchors.leftMargin: vpx(20)
+                property var sharedFilter: sharedGamesFilter
+                Layout.preferredWidth: detailsExpanded ? root.width * 0.39 : root.width * 0.24
+                Layout.fillHeight: true
 
-                Behavior on width {
+                Behavior on Layout.preferredWidth {
                     NumberAnimation {
                         duration: 400
                         easing.type: Easing.OutCubic
@@ -317,7 +302,6 @@ FocusScope {
             event.accepted = true
             gameDetailsPanel.isExpanded = !gameDetailsPanel.isExpanded
         }
-        // Atajo V para cambiar entre Grid y List
         else if (event.key === Qt.Key_V) {
             event.accepted = true
             if (gamesViewMode === "grid") {
@@ -332,7 +316,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        // Restaurar el modo de vista guardado
         var savedViewMode = api.memory.get('gamesViewMode')
         if (savedViewMode === "list" || savedViewMode === "grid") {
             root.gamesViewMode = savedViewMode

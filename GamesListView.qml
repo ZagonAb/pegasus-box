@@ -10,8 +10,6 @@ FocusScope {
 
     property int currentIndex: 0
     property var currentCollection: root.currentCollection
-
-    // USAR EL FILTRO COMPARTIDO EN LUGAR DE UNO PROPIO
     property var sharedFilter: null
     property alias gamesFilter: filterAlias
 
@@ -36,7 +34,6 @@ FocusScope {
     signal collapseDetailsPanel()
     signal switchToGridView()
 
-    // MouseArea global para colapsar el panel de detalles
     MouseArea {
         anchors.fill: parent
         onClicked: {
@@ -46,7 +43,6 @@ FocusScope {
         z: -10
     }
 
-    // Fondo del panel
     Rectangle {
         id: panelBackground
         anchors.fill: parent
@@ -69,7 +65,6 @@ FocusScope {
         }
     }
 
-    // Título del panel con ícono de cambio a GridView
     Row {
         id: titleRow
         anchors {
@@ -100,7 +95,6 @@ FocusScope {
             }
         }
 
-        // Ícono para cambiar a GridView
         Item {
             width: vpx(28)
             height: vpx(28)
@@ -142,7 +136,6 @@ FocusScope {
             }
         }
 
-        // Spinner
         Item {
             id: spinnerContainer
             visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
@@ -193,7 +186,6 @@ FocusScope {
             }
         }
 
-        // Contador de resultados
         Text {
             id: resultsCounter
             visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching
@@ -216,7 +208,6 @@ FocusScope {
         }
     }
 
-    // Indicador de búsqueda global
     Text {
         id: searchModeIndicator
         visible: gamesFilter.globalSearchMode
@@ -249,7 +240,6 @@ FocusScope {
         elide: Text.ElideRight
     }
 
-    // Contenedor principal
     Item {
         anchors {
             top: gamesFilter.globalSearchMode ? searchModeIndicator.bottom : titleRow.bottom
@@ -260,7 +250,6 @@ FocusScope {
             topMargin: gamesFilter.globalSearchMode ? vpx(10) : vpx(20)
         }
 
-        // ListView de juegos
         ListView {
             id: gamesList
             anchors.fill: parent
@@ -283,7 +272,6 @@ FocusScope {
                 }
             }
 
-            // Mensaje de búsqueda en progreso
             Item {
                 visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
                 anchors.centerIn: parent
@@ -368,7 +356,6 @@ FocusScope {
                 }
             }
 
-            // Mensaje sin resultados
             Item {
                 visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching &&
                 gamesFilter.filteredModel && gamesFilter.filteredModel.count === 0
@@ -493,7 +480,6 @@ FocusScope {
                         anchors.margins: vpx(10)
                         spacing: vpx(15)
 
-                        // Imagen del juego
                         Rectangle {
                             id: gameImageContainer
                             width: vpx(60)
@@ -528,7 +514,6 @@ FocusScope {
                             }
                         }
 
-                        // Título del juego (centrado verticalmente)
                         Text {
                             id: gameTitle
                             width: parent.width - gameImageContainer.width - itemIco.width - vpx(30)
@@ -545,7 +530,6 @@ FocusScope {
                             }
                         }
 
-                        // Controles interactivos
                         Row {
                             id: itemIco
                             height: parent.height
@@ -553,7 +537,6 @@ FocusScope {
                             visible: isCurrent
                             anchors.verticalCenter: parent.verticalCenter
 
-                            // History icon
                             Item {
                                 id: historyItem
                                 width: vpx(28)
@@ -571,7 +554,6 @@ FocusScope {
                                 }
                             }
 
-                            // Favorite icon
                             Item {
                                 id: favoriteItem
                                 width: vpx(28)
@@ -626,7 +608,6 @@ FocusScope {
                                 }
                             }
 
-                            // Play icon
                             Item {
                                 id: playItem
                                 width: vpx(28)
@@ -702,7 +683,6 @@ FocusScope {
             }
         }
 
-        // Scrollbar
         Rectangle {
             id: scrollBar
             anchors {
