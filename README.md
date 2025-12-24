@@ -2,7 +2,7 @@
 
 - A theme for pegasus-frontend
 
-![screen]()
+![screen](https://github.com/ZagonAb/pegasusbox/blob/1bca8163ae9120852af1e79249477609fe69df61/.meta/screenshots/screen0.png)
 
 ![screen1](https://github.com/ZagonAb/pegasusbox/blob/cb51ef2ffd426aab2829d1a9ec0c729716590383/.meta/screenshots/screen1.png)
 
