@@ -553,8 +553,7 @@ FocusScope {
                                     anchors.fill: parent
                                     source: "assets/images/icons/history.svg"
                                     fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    antialiasing: true
+                                    mipmap: true
                                     opacity: 0.8
                                 }
                             }
@@ -571,8 +570,7 @@ FocusScope {
                                     "assets/images/icons/favorite-yes.svg" :
                                     "assets/images/icons/favorite-no.svg"
                                     fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    antialiasing: true
+                                    mipmap: true
                                     opacity: favoriteMouseArea.containsMouse ? 1.0 : 0.8
 
                                     Behavior on opacity {
@@ -622,8 +620,7 @@ FocusScope {
                                     anchors.fill: parent
                                     source: "assets/images/icons/play.svg"
                                     fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    antialiasing: true
+                                    mipmap: true
                                     opacity: playMouseArea.containsMouse ? 1.0 : 0.8
 
                                     Behavior on opacity {
