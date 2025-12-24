@@ -539,7 +539,7 @@ FocusScope {
                             visible: isCurrent
                             anchors {
                                 bottom: parent.bottom
-                                bottomMargin: vpx(8)
+                                bottomMargin: vpx(2)
                                 horizontalCenter: parent.horizontalCenter
                             }
 
