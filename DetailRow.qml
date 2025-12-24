@@ -3,11 +3,10 @@ import QtQuick 2.15
 Item {
     id: detailRow
 
-    // Propiedades públicas
     property string label: ""
     property string value: ""
-    property color labelColor: "#b0b0b0" // secondaryTextColor
-    property color valueColor: "#ffffff"  // textColor
+    property color labelColor: "#b0b0b0"
+    property color valueColor: "#ffffff"
     property int labelFontSize: vpx(14)
     property int valueFontSize: vpx(14)
     property bool showDivider: false
@@ -15,7 +14,6 @@ Item {
     width: parent ? parent.width : 0
     height: vpx(20)
 
-    // Etiqueta
     Text {
         id: labelText
         text: detailRow.label
@@ -24,7 +22,6 @@ Item {
         font.pixelSize: detailRow.labelFontSize
     }
 
-    // Valor
     Text {
         anchors {
             left: labelText.right
@@ -41,7 +38,6 @@ Item {
         maximumLineCount: 2
     }
 
-    // Línea divisoria opcional
     Rectangle {
         anchors {
             left: parent.left

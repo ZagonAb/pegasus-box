@@ -11,10 +11,7 @@ FocusScope {
     property int currentIndex: 0
     property int columns: 4
     property int rows: 3
-
     property var currentCollection: root.currentCollection
-
-    // USAR EL FILTRO COMPARTIDO EN LUGAR DE UNO PROPIO
     property var sharedFilter: null
     property alias gamesFilter: filterAlias
 
@@ -39,18 +36,15 @@ FocusScope {
     signal collapseDetailsPanel()
     signal switchToListView()
 
-    // MouseArea global para colapsar el panel de detalles al hacer clic
     MouseArea {
         anchors.fill: parent
         onClicked: {
             gamesGridView.collapseDetailsPanel()
         }
-        // Permitir que los clicks pasen a los elementos internos
         propagateComposedEvents: true
         z: -10
     }
 
-    // Fondo del panel
     Rectangle {
         id: panelBackground
         anchors.fill: parent
@@ -73,7 +67,6 @@ FocusScope {
         }
     }
 
-    // Título del panel con información dinámica
     Row {
         id: titleRow
         anchors {
@@ -84,25 +77,6 @@ FocusScope {
         }
         height: vpx(30)
         spacing: vpx(12)
-
-        /*Text {
-            id: panelTitle
-            text: {
-                if (gamesFilter.globalSearchMode) {
-                    return "GLOBAL SEARCH"
-                }
-                return root.currentCollection ? root.currentCollection.name.toUpperCase() : "GAMES"
-            }
-            color: accentColor
-            font.family: condensedFontFamily
-            font.pixelSize: vpx(24)
-            font.bold: true
-            anchors.verticalCenter: parent.verticalCenter
-
-            Behavior on color {
-                ColorAnimation { duration: 200 }
-            }
-        }*/
 
         Text {
             id: panelTitle
@@ -131,7 +105,6 @@ FocusScope {
             }
         }
 
-        // Ícono para cambiar a ListView
         Item {
             width: vpx(28)
             height: vpx(28)
@@ -173,7 +146,6 @@ FocusScope {
             }
         }
 
-        //spinner
         Item {
             id: spinnerContainer
             visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
@@ -224,7 +196,6 @@ FocusScope {
             }
         }
 
-        // Contador de resultados
         Text {
             id: resultsCounter
             visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching
@@ -247,7 +218,6 @@ FocusScope {
         }
     }
 
-    // Indicador de modo de búsqueda global
     Text {
         id: searchModeIndicator
         visible: gamesFilter.globalSearchMode
@@ -280,7 +250,6 @@ FocusScope {
         elide: Text.ElideRight
     }
 
-    // Contenedor principal
     Item {
         anchors {
             top: gamesFilter.globalSearchMode ? searchModeIndicator.bottom : titleRow.bottom
@@ -296,7 +265,6 @@ FocusScope {
             anchors.fill: parent
             spacing: vpx(8)
 
-            // Grid de juegos
             GridView {
                 id: gamesGrid
                 Layout.fillWidth: true
@@ -308,7 +276,6 @@ FocusScope {
                 model: gamesFilter.filteredModel
                 currentIndex: gamesGridView.currentIndex
 
-                // Ocultar durante búsqueda activa
                 opacity: gamesFilter.isSearching ? 0.3 : 1.0
 
                 Behavior on opacity {
@@ -321,7 +288,6 @@ FocusScope {
                     }
                 }
 
-                // Mensaje de búsqueda en progreso
                 Item {
                     visible: gamesFilter.globalSearchMode && gamesFilter.isSearching
                     anchors.centerIn: parent
@@ -333,7 +299,6 @@ FocusScope {
                         anchors.centerIn: parent
                         spacing: vpx(25)
 
-                        // Spinner grande central
                         Item {
                             width: vpx(80)
                             height: vpx(80)
@@ -407,7 +372,6 @@ FocusScope {
                     }
                 }
 
-                // Mensaje cuando no hay resultados en búsqueda global
                 Item {
                     visible: gamesFilter.globalSearchMode && !gamesFilter.isSearching &&
                     gamesFilter.filteredModel && gamesFilter.filteredModel.count === 0
@@ -513,7 +477,6 @@ FocusScope {
                             ColorAnimation { duration: 150 }
                         }
 
-                        // Imagen del juego
                         Rectangle {
                             id: gameImageContainer
                             width: parent.width
@@ -547,7 +510,6 @@ FocusScope {
                             }
                         }
 
-                        // Título del juego
                         Text {
                             id: gameTitle
                             anchors {
@@ -570,7 +532,6 @@ FocusScope {
                             }
                         }
 
-                        // Controles interactivos
                         Row {
                             id: itemIco
                             height: vpx(30)
@@ -582,7 +543,6 @@ FocusScope {
                                 horizontalCenter: parent.horizontalCenter
                             }
 
-                            // History icon
                             Item {
                                 id: historyItem
                                 width: vpx(26)
@@ -599,7 +559,6 @@ FocusScope {
                                 }
                             }
 
-                            // Favorite icon
                             Item {
                                 id: favoriteItem
                                 width: vpx(26)
@@ -653,7 +612,6 @@ FocusScope {
                                 }
                             }
 
-                            // Play icon
                             Item {
                                 id: playItem
                                 width: vpx(26)
@@ -715,7 +673,6 @@ FocusScope {
 
                         onClicked: {
                             root.selectGameWithMouse(index)
-                            // Colapsar el panel de detalles al seleccionar un juego
                             gamesGridView.collapseDetailsPanel()
                         }
 
@@ -727,42 +684,43 @@ FocusScope {
                     }
                 }
             }
-        }
 
-        // Scrollbar
-        Rectangle {
-            id: scrollBar
-            Layout.preferredWidth: vpx(6)
-            Layout.fillHeight: true
-            radius: width / 2
-            color: "#555"
-            opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
-            visible: gamesGrid.contentHeight > gamesGrid.height
-
-            Behavior on opacity {
-                NumberAnimation { duration: 200 }
-            }
 
             Rectangle {
-                id: scrollHandle
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                }
-                height: Math.max(vpx(30), scrollBar.height * gamesGrid.visibleArea.heightRatio)
-
-                y: Math.min(
-                    Math.max(
-                        0,
-                        gamesGrid.visibleArea.yPosition * scrollBar.height
-                    ),
-                    scrollBar.height - scrollHandle.height
-                )
-
+                id: scrollBar
+                Layout.preferredWidth: vpx(6)
+                Layout.fillHeight: true
                 radius: width / 2
-                color: accentColor
+                color: "#555"
+                opacity: gamesGrid.moving || gamesGrid.flicking ? 0.8 : 0.3
+                visible: gamesGrid.contentHeight > gamesGrid.height
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
+                }
+
+                Rectangle {
+                    id: scrollHandle
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                    height: Math.max(vpx(30), scrollBar.height * gamesGrid.visibleArea.heightRatio)
+
+                    y: Math.min(
+                        Math.max(
+                            0,
+                            gamesGrid.visibleArea.yPosition * scrollBar.height
+                        ),
+                        scrollBar.height - scrollHandle.height
+                    )
+
+                    radius: width / 2
+                    color: accentColor
+                }
             }
         }
+
     }
 
     Keys.onPressed: {

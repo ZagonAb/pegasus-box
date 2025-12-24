@@ -5,25 +5,20 @@ import "utils.js" as Utils
 Item {
     id: gamesFilter
 
-    // Propiedades públicas
     property var sourceModel: null
     property string currentFilter: "All Games"
     property string searchText: ""
-    property string searchField: "title" // Campo activo de búsqueda
+    property string searchField: "title"
     property var filteredModel: gamesProxyModel
-
-    // Modo de búsqueda global
     property bool globalSearchMode: false
     property bool isSearching: false
 
     signal currentFilteredGameChanged(var game)
     signal searchCompleted()
 
-    // Proxy model para ordenar/filtrar
     SortFilterProxyModel {
         id: gamesProxyModel
 
-        // Cambiar dinámicamente entre colección actual y api.allGames
         sourceModel: {
             if (gamesFilter.globalSearchMode && gamesFilter.searchText !== "") {
                 console.log("GamesFilter: Using api.allGames (", api.allGames.count, "games )")
@@ -33,7 +28,6 @@ Item {
             return gamesFilter.sourceModel
         }
 
-        // FILTRO MEJORADO: Buscar en el campo específico seleccionado
         filters: ExpressionFilter {
             id: searchFilter
             enabled: gamesFilter.searchText !== ""
@@ -45,7 +39,6 @@ Item {
                 var searchLower = gamesFilter.searchText.toLowerCase()
                 var field = gamesFilter.searchField
 
-                // Buscar según el campo seleccionado
                 switch(field) {
                     case "title":
                         var title = model.title || ""
@@ -78,16 +71,13 @@ Item {
                         return sortBy.toLowerCase().indexOf(searchLower) !== -1
 
                     default:
-                        // Fallback a búsqueda en título
                         var defaultTitle = model.title || ""
                         return defaultTitle.toLowerCase().indexOf(searchLower) !== -1
                 }
             }
         }
 
-        // Ordenamiento optimizado
         sorters: [
-            // Favoritos primero (solo si el filtro está activo Y no estamos en búsqueda global)
             RoleSorter {
                 id: favoriteSorter
                 roleName: "favorite"
@@ -96,7 +86,6 @@ Item {
                 priority: 10
             },
 
-            // Último jugado
             RoleSorter {
                 id: lastPlayedSorter
                 roleName: "lastPlayed"
@@ -105,7 +94,6 @@ Item {
                 priority: 9
             },
 
-            // Rating
             RoleSorter {
                 id: ratingSorter
                 roleName: "rating"
@@ -114,7 +102,6 @@ Item {
                 priority: 8
             },
 
-            // Año de lanzamiento
             RoleSorter {
                 id: yearSorter
                 roleName: "releaseYear"
@@ -123,7 +110,6 @@ Item {
                 priority: 7
             },
 
-            // En búsqueda global: ordenar por relevancia (playCount) primero
             RoleSorter {
                 id: playCountSorter
                 roleName: "playCount"
@@ -132,38 +118,32 @@ Item {
                 priority: 6
             },
 
-            // Título alfabético (siempre activo como fallback)
             RoleSorter {
                 id: titleSorter
-                roleName: "sortBy"  // Usar sortBy en lugar de title para mejor ordenamiento
+                roleName: "sortBy"
                 sortOrder: Qt.AscendingOrder
                 priority: 1
             }
         ]
     }
 
-    // Función para actualizar el filtro
     function updateFilter(filterType) {
         console.log("GamesFilter: Updating filter to:", filterType)
         currentFilter = filterType
 
-        // Deshabilitar búsqueda global cuando se cambia de filtro
         if (filterType !== "All Games" || searchText === "") {
             globalSearchMode = false
             isSearching = false
         }
 
-        // Invalidar y actualizar
         gamesProxyModel.invalidate()
         filterChanged()
 
-        // Emitir juego actual si hay elementos
         if (gamesProxyModel.count > 0) {
             currentFilteredGameChanged(gamesProxyModel.get(0))
         }
     }
 
-    // Función MEJORADA para actualizar la búsqueda con campo específico
     function updateSearch(text, field) {
         var trimmedText = text.trim()
         console.log("GamesFilter: Updating search")
@@ -174,7 +154,6 @@ Item {
         searchField = field || "title"
         isSearching = true
 
-        // Habilitar búsqueda global si hay texto
         if (trimmedText !== "") {
             globalSearchMode = true
             console.log("GamesFilter: Global search ENABLED")
@@ -186,15 +165,12 @@ Item {
             console.log("GamesFilter: Global search DISABLED")
         }
 
-        // Forzar actualización
         gamesProxyModel.invalidate()
         searchChanged()
 
-        // Log de resultados
         var resultCount = gamesProxyModel.count
         console.log("GamesFilter: Found", resultCount, "results")
 
-        // Mostrar algunos resultados en el log (máximo 5)
         if (resultCount > 0) {
             var maxLog = Math.min(resultCount, 5)
             console.log("GamesFilter: Top results:")
@@ -217,21 +193,18 @@ Item {
             }
         }
 
-        // Pequeño delay para simular búsqueda y dar tiempo al UI
         searchCompleteTimer.restart()
     }
 
-    // Timer para completar búsqueda
     Timer {
         id: searchCompleteTimer
-        interval: 100 // Pequeño delay para que se vea el spinner
+        interval: 100
         onTriggered: {
             isSearching = false
             searchCompleted()
         }
     }
 
-    // Función mejorada para verificar disponibilidad de filtros
     function checkFilterAvailability(collection) {
         if (!collection || !collection.games) {
             return {
@@ -248,39 +221,31 @@ Item {
         var hasRating = false
         var hasYear = false
         var gamesCount = collection.games.count
-
-        // Optimización: revisar máximo 100 juegos para la verificación
         var checkLimit = Math.min(gamesCount, 100)
 
         for (var i = 0; i < checkLimit; i++) {
             var game = collection.games.get(i)
             if (game) {
-                // Verificar favoritos
                 if (!hasFavorites && game.favorite === true) {
                     hasFavorites = true
                 }
 
-                // Verificar lastPlayed (debe ser una fecha válida)
                 if (!hasLastPlayed && game.lastPlayed) {
-                    // Verificar si es una fecha válida comprobando getTime()
                     var timestamp = game.lastPlayed.getTime()
                     if (!isNaN(timestamp) && timestamp > 0) {
                         hasLastPlayed = true
                     }
                 }
 
-                // Verificar rating (mayor que 0)
                 if (!hasRating && game.rating > 0) {
                     hasRating = true
                 }
 
-                // Verificar año de lanzamiento
                 if (!hasYear && game.releaseYear > 0) {
                     hasYear = true
                 }
             }
 
-            // Salir temprano si ya encontramos todos
             if (hasFavorites && hasLastPlayed && hasRating && hasYear) {
                 break
             }
@@ -298,7 +263,6 @@ Item {
         return result
     }
 
-    // Función para resetear filtro
     function resetFilter() {
         console.log("GamesFilter: Resetting filter to All Games")
         currentFilter = "All Games"
@@ -309,12 +273,10 @@ Item {
         gamesProxyModel.invalidate()
     }
 
-    // Función para contar juegos filtrados
     function getFilteredCount() {
         return gamesProxyModel.count
     }
 
-    // Función para obtener juego por índice
     function getGameAt(index) {
         if (index >= 0 && index < gamesProxyModel.count) {
             return gamesProxyModel.get(index)
@@ -322,16 +284,13 @@ Item {
         return null
     }
 
-    // Función para obtener todos los juegos como array (útil para operaciones complejas)
     function getAllGames() {
         return gamesProxyModel.toVarArray()
     }
 
-    // Señales
     signal filterChanged()
     signal searchChanged()
 
-    // Inicializar
     Component.onCompleted: {
         console.log("=".repeat(60))
         console.log("GamesFilter: Component loaded with field-specific search")
@@ -342,7 +301,6 @@ Item {
         console.log("=".repeat(60))
     }
 
-    // Conexión para monitorear cambios en el modelo
     Connections {
         target: gamesProxyModel
         function onCountChanged() {

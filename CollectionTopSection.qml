@@ -335,7 +335,6 @@ Item {
                             id: searchInput
                             anchors.fill: parent
                             anchors.topMargin: vpx(2)
-                            // anchors.rightMargin: clearButton.visible ? clearButton.width + vpx(5) : 0
                             text: searchText
                             color: textColor
                             font.family: fontFamily

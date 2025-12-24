@@ -1,6 +1,5 @@
 import QtQuick 2.15
 
-// Botón reutilizable
 Item {
     id: button
 
@@ -39,11 +38,10 @@ Item {
     }
 }
 
-// Barra de progreso
 Item {
     id: progressBar
 
-    property real value: 0 // 0.0 - 1.0
+    property real value: 0
     property color backgroundColor: "#333"
     property color fillColor: "#0078d7"
 
@@ -67,7 +65,6 @@ Item {
     }
 }
 
-// Componente para filas de detalle
 Item {
     id: detailRow
 
