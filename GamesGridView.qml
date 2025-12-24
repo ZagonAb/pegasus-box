@@ -85,7 +85,7 @@ FocusScope {
         height: vpx(30)
         spacing: vpx(12)
 
-        Text {
+        /*Text {
             id: panelTitle
             text: {
                 if (gamesFilter.globalSearchMode) {
@@ -98,6 +98,33 @@ FocusScope {
             font.pixelSize: vpx(24)
             font.bold: true
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: 200 }
+            }
+        }*/
+
+        Text {
+            id: panelTitle
+            text: {
+                if (gamesFilter.globalSearchMode) {
+                    return "GLOBAL SEARCH"
+                }
+                return root.currentCollection ? root.currentCollection.name.toUpperCase() : "GAMES"
+            }
+            color: accentColor
+            font.family: condensedFontFamily
+            font.pixelSize: root.detailsExpanded ? vpx(14) : vpx(24)
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+            elide: Text.ElideRight
+
+            Behavior on font.pixelSize {
+                NumberAnimation {
+                    duration: 350
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Behavior on color {
                 ColorAnimation { duration: 200 }

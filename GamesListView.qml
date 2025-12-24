@@ -86,9 +86,17 @@ FocusScope {
             }
             color: accentColor
             font.family: condensedFontFamily
-            font.pixelSize: vpx(24)
+            font.pixelSize: root.detailsExpanded ? vpx(14) : vpx(24)
             font.bold: true
             anchors.verticalCenter: parent.verticalCenter
+            elide: Text.ElideRight
+
+            Behavior on font.pixelSize {
+                NumberAnimation {
+                    duration: 350
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Behavior on color {
                 ColorAnimation { duration: 200 }

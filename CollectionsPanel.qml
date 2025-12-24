@@ -10,7 +10,6 @@ FocusScope {
     property int currentIndex: 0
     property bool isRestoring: false
 
-    // Fondo del panel
     Rectangle {
         id: panelBackground
         anchors.fill: parent
@@ -33,10 +32,9 @@ FocusScope {
         }
     }
 
-    // Título del panel
     Text {
         id: panelTitle
-        text: "PegasusBox"
+        text: "PEGASUS BOX"
         color: accentColor
         font.family: condensedFontFamily
         font.pixelSize: vpx(24)
@@ -63,7 +61,6 @@ FocusScope {
         onFilterChanged: function(filterType) {
             console.log("CollectionsPanel: Filter changed to:", filterType)
 
-            // Actualizar el filtro en el GamesGridView
             if (gamesGridView && typeof gamesGridView.updateFilter === "function") {
                 gamesGridView.updateFilter(filterType)
             }
@@ -74,7 +71,6 @@ FocusScope {
             console.log("  - Text:", text)
             console.log("  - Field:", field)
 
-            // Actualizar la búsqueda en el GamesGridView con el campo específico
             if (gamesGridView && typeof gamesGridView.updateSearch === "function") {
                 gamesGridView.updateSearch(text, field)
             }
@@ -95,7 +91,6 @@ FocusScope {
         z: 1
     }
 
-    // SECCIÓN INFERIOR - Lista de colecciones
     Item {
         id: bottomSection
         anchors {
@@ -114,7 +109,6 @@ FocusScope {
             anchors.fill: parent
             spacing: vpx(8)
 
-            // Lista de colecciones
             ListView {
                 id: collectionsList
                 Layout.fillWidth: true
@@ -262,7 +256,6 @@ FocusScope {
         }
     }
 
-    // Navegación con teclado
     Keys.onPressed: {
         if (api.keys.isAccept(event)) {
             event.accepted = true
@@ -351,19 +344,16 @@ FocusScope {
         }
     }
 
-    // Actualizar cuando cambia la colección
     Connections {
         target: root
         function onCurrentCollectionChanged() {
             console.log("CollectionsPanel: Current collection changed to",
                         root.currentCollection ? root.currentCollection.name : "null")
 
-            // Notificar a la sección superior del cambio de colección
             if (topSection && typeof topSection.onCollectionChanged === "function") {
                 topSection.onCollectionChanged(root.currentCollection)
             }
 
-            // Notificar al GamesGridView para resetear filtros
             if (gamesGridView && typeof gamesGridView.resetFilter === "function") {
                 Qt.callLater(function() {
                     gamesGridView.resetFilter()
@@ -372,11 +362,9 @@ FocusScope {
         }
     }
 
-    // Actualizar disponibilidad de filtros cuando se carga
     Component.onCompleted: {
         console.log("CollectionsPanel loaded with field-specific search")
 
-        // Actualizar disponibilidad de filtros inicial
         if (topSection && typeof topSection.updateFilterAvailability === "function") {
             Qt.callLater(function() {
                 topSection.updateFilterAvailability(root.currentCollection)

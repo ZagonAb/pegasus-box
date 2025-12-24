@@ -439,8 +439,17 @@ Item {
             Item {
                 id: mediaPreview
                 width: parent.width
-                height: vpx(90)
+                height: vpx(98)
                 visible: displayGame && availableMedia.length > 0
+
+                property int currentMediaIndex: 0
+                property string currentMediaSource: availableMedia.length > 0 ?
+                availableMedia[currentMediaIndex].source :
+                (displayGame ? displayGame.assets.screenshot || displayGame.assets.logo || "" : "")
+                property bool currentIsVideo: availableMedia.length > 0 ?
+                availableMedia[currentMediaIndex].isVideo : false
+                property string currentMediaType: availableMedia.length > 0 ?
+                availableMedia[currentMediaIndex].label : ""
 
                 property var availableMedia: {
                     if (!displayGame) return []
@@ -482,125 +491,163 @@ Item {
                         return media
                 }
 
-                property int currentMediaIndex: 0
-                property string currentMediaSource: availableMedia.length > 0 ?
-                availableMedia[currentMediaIndex].source :
-                (displayGame ? displayGame.assets.screenshot || displayGame.assets.logo || "" : "")
-                property bool currentIsVideo: availableMedia.length > 0 ?
-                availableMedia[currentMediaIndex].isVideo : false
-                property string currentMediaType: availableMedia.length > 0 ?
-                availableMedia[currentMediaIndex].label : ""
-
-                Column {
-                    anchors.fill: parent
-                    spacing: vpx(8)
-
-                    Text {
-                        text: "MEDIA (" + mediaPreview.availableMedia.length + ")"
-                        color: accentColor
-                        font.family: condensedFontFamily
-                        font.pixelSize: vpx(14)
-                        font.bold: true
+                Text {
+                    id: mediaTitle
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: parent.right
                     }
+                    text: "MEDIA (" + mediaPreview.availableMedia.length + ")"
+                    color: accentColor
+                    font.family: condensedFontFamily
+                    font.pixelSize: vpx(14)
+                    font.bold: true
+                }
 
-                    Flickable {
-                        width: parent.width
-                        height: vpx(70)
-                        contentWidth: mediaRow.width
-                        contentHeight: height
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
+                Flickable {
+                    id: mediaFlickable
+                    anchors {
+                        top: mediaTitle.bottom
+                        left: parent.left
+                        right: parent.right
+                        topMargin: vpx(8)
+                    }
+                    width: parent.width
+                    height: vpx(70)
+                    contentWidth: mediaRow.width
+                    contentHeight: height
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
 
-                        Row {
-                            id: mediaRow
-                            spacing: vpx(8)
-                            height: parent.height
+                    Row {
+                        id: mediaRow
+                        spacing: vpx(8)
+                        height: parent.height
 
-                            Repeater {
-                                model: mediaPreview.availableMedia
+                        Repeater {
+                            model: mediaPreview.availableMedia
+
+                            Rectangle {
+                                width: vpx(90)
+                                height: vpx(70)
+                                radius: vpx(4)
+                                color: "#333"
+                                border.width: mediaPreview.currentMediaIndex === index ? vpx(3) : vpx(1)
+                                border.color: mediaPreview.currentMediaIndex === index ? accentColor : "#555"
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: vpx(2)
+                                    source: modelData.isVideo ? "" : modelData.source
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    visible: !modelData.isVideo
+
+                                    layer.enabled: true
+                                    layer.effect: OpacityMask {
+                                        maskSource: Rectangle {
+                                            width: vpx(86)
+                                            height: vpx(66)
+                                            radius: vpx(3)
+                                        }
+                                    }
+                                }
 
                                 Rectangle {
-                                    width: vpx(90)
-                                    height: vpx(70)
-                                    radius: vpx(4)
-                                    color: "#333"
-                                    border.width: mediaPreview.currentMediaIndex === index ? vpx(3) : vpx(1)
-                                    border.color: mediaPreview.currentMediaIndex === index ? accentColor : "#555"
+                                    anchors.fill: parent
+                                    anchors.margins: vpx(2)
+                                    radius: vpx(3)
+                                    color: "#444"
+                                    visible: modelData.isVideo
 
-                                    Image {
-                                        anchors.fill: parent
-                                        anchors.margins: vpx(2)
-                                        source: modelData.isVideo ? "" : modelData.source
-                                        fillMode: Image.PreserveAspectCrop
-                                        asynchronous: true
-                                        visible: !modelData.isVideo
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "▶"
+                                        color: accentColor
+                                        font.pixelSize: vpx(24)
+                                    }
+                                }
 
-                                        layer.enabled: true
-                                        layer.effect: OpacityMask {
-                                            maskSource: Rectangle {
-                                                width: vpx(86)
-                                                height: vpx(66)
-                                                radius: vpx(3)
-                                            }
+                                Rectangle {
+                                    anchors {
+                                        left: parent.left
+                                        right: parent.right
+                                        bottom: parent.bottom
+                                        margins: vpx(2)
+                                    }
+                                    height: vpx(18)
+                                    radius: vpx(3)
+                                    color: "#DD000000"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: "white"
+                                        font.family: condensedFontFamily
+                                        font.pixelSize: vpx(9)
+                                        elide: Text.ElideRight
+                                        width: parent.width - vpx(4)
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+
+                                    onClicked: {
+                                        mediaPreview.currentMediaIndex = index
+                                        if (modelData.isVideo) {
+                                            videoPlayer.play()
                                         }
                                     }
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        anchors.margins: vpx(2)
-                                        radius: vpx(3)
-                                        color: "#444"
-                                        visible: modelData.isVideo
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "▶"
-                                            color: accentColor
-                                            font.pixelSize: vpx(24)
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            bottom: parent.bottom
-                                            margins: vpx(2)
-                                        }
-                                        height: vpx(18)
-                                        radius: vpx(3)
-                                        color: "#DD000000"
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.label
-                                            color: "white"
-                                            font.family: condensedFontFamily
-                                            font.pixelSize: vpx(9)
-                                            elide: Text.ElideRight
-                                            width: parent.width - vpx(4)
-                                            horizontalAlignment: Text.AlignHCenter
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-
-                                        onClicked: {
-                                            mediaPreview.currentMediaIndex = index
-                                            if (modelData.isVideo) {
-                                                videoPlayer.play()
-                                            }
-                                        }
-
-                                        onEntered: parent.opacity = 0.8
-                                        onExited: parent.opacity = 1
-                                    }
+                                    onEntered: parent.opacity = 0.8
+                                    onExited: parent.opacity = 1
                                 }
                             }
                         }
+                    }
+                }
+
+                Rectangle {
+                    id: mediaScrollBar
+                    anchors {
+                        top: mediaFlickable.bottom
+                        left: parent.left
+                        right: parent.right
+                        topMargin: vpx(8)
+                    }
+                    height: vpx(6)
+                    radius: height / 2
+                    color: "#555"
+                    opacity: mediaFlickable.moving || mediaFlickable.flicking ? 0.8 : 0.3
+                    visible: mediaFlickable.contentWidth > mediaFlickable.width
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200 }
+                    }
+
+                    Rectangle {
+                        id: mediaScrollHandle
+                        anchors {
+                            top: parent.top
+                            bottom: parent.bottom
+                        }
+                        width: Math.max(vpx(30), mediaScrollBar.width * mediaFlickable.visibleArea.widthRatio)
+
+                        x: Math.min(
+                            Math.max(
+                                0,
+                                mediaFlickable.visibleArea.xPosition * mediaScrollBar.width
+                            ),
+                            mediaScrollBar.width - mediaScrollHandle.width
+                        )
+
+                        radius: height / 2
+                        color: accentColor
                     }
                 }
             }
