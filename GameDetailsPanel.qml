@@ -92,6 +92,54 @@ Item {
         }
     }
 
+    Item {
+        id: openPanelIcon
+        width: vpx(28)
+        height: vpx(28)
+        anchors {
+            top: parent.top
+            right: parent.right
+            margins: vpx(20)
+        }
+        visible: !isExpanded
+
+        Image {
+            id: openPanelImage
+            anchors.fill: parent
+            source: "assets/images/icons/panel-right-open.svg"
+            fillMode: Image.PreserveAspectFit
+            mipmap: true
+        }
+
+        MouseArea {
+            id: iconMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (!gameDetailsPanel.isExpanded) {
+                    gameDetailsPanel.isExpanded = true
+                    gameDetailsPanel.expansionChanged(true)
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.width + vpx(8)
+            height: parent.height + vpx(8)
+            radius: vpx(4)
+            color: "transparent"
+            border.color: accentColor
+            border.width: vpx(1)
+            opacity: iconMouseArea.containsMouse ? 0.3 : 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+        }
+    }
+
     Flickable {
         id: detailsFlickable
         anchors {

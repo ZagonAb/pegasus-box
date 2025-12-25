@@ -114,7 +114,7 @@ FocusScope {
             Image {
                 id: listViewIcon
                 anchors.fill: parent
-                source: "assets/images/icons/listview.svg"
+                source: "assets/images/icons/gridview.svg"
                 fillMode: Image.PreserveAspectFit
                 mipmap: true
             }
@@ -139,6 +139,51 @@ FocusScope {
                 border.color: accentColor
                 border.width: vpx(1)
                 opacity: listViewMouseArea.containsMouse ? 0.3 : 0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+        }
+
+        Item {
+            width: vpx(28)
+            height: vpx(28)
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.detailsExpanded
+
+            Image {
+                id: closePanelIcon
+                anchors.fill: parent
+                source: "assets/images/icons/panel-right-close.svg"
+                fillMode: Image.PreserveAspectFit
+                mipmap: true
+            }
+
+            MouseArea {
+                id: closePanelMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (root.detailsExpanded) {
+                        gameDetailsPanel.isExpanded = false
+                        root.detailsExpanded = false
+                        root.focusedPanel = "games"
+                        gamesGridView.forceActiveFocus()
+                    }
+                }
+            }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width + vpx(8)
+                height: parent.height + vpx(8)
+                radius: vpx(4)
+                color: "transparent"
+                border.color: accentColor
+                border.width: vpx(1)
+                opacity: closePanelMouseArea.containsMouse ? 0.3 : 0
 
                 Behavior on opacity {
                     NumberAnimation { duration: 150 }
