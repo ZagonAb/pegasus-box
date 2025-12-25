@@ -121,124 +121,137 @@ FocusScope {
         anchors.fill: parent
         color: backgroundColor
 
-        RowLayout {
+        ColumnLayout {
             anchors.fill: parent
-            anchors.margins: root.width * 0.01
-            spacing: root.width * 0.01
+            anchors.margins: root.width * 0.005
+            spacing: root.width * 0.005
 
-            CollectionsPanel {
-                id: collectionsPanel
-                Layout.preferredWidth: root.width * 0.24
+            RowLayout {
+                Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: root.currentCollectionIndex
-                focus: root.focusedPanel === "collections"
+                spacing: root.width * 0.014
 
-                onCurrentIndexChanged: {
-                    if (!root.isRestoringState) {
-                        root.currentCollectionIndex = currentIndex
-                        root.saveState("collection_changed")
+                CollectionsPanel {
+                    id: collectionsPanel
+                    Layout.preferredWidth: root.width * 0.24
+                    Layout.fillHeight: true
+                    currentIndex: root.currentCollectionIndex
+                    focus: root.focusedPanel === "collections"
+
+                    onCurrentIndexChanged: {
+                        if (!root.isRestoringState) {
+                            root.currentCollectionIndex = currentIndex
+                            root.saveState("collection_changed")
+                        }
+                    }
+                }
+
+                GamesGridView {
+                    id: gamesGridView
+                    visible: gamesViewMode === "grid"
+                    opacity: visible ? 1.0 : 0.0
+                    Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
+                    Layout.fillHeight: true
+                    currentIndex: root.currentGameIndex
+                    focus: root.focusedPanel === "games" && visible
+
+                    sharedFilter: sharedGamesFilter
+
+                    columns: detailsExpanded ? 3 : 4
+                    rows: 3
+
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation {
+                            duration: 400
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200 }
+                    }
+
+                    onCurrentIndexChanged: {
+                        if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
+                            root.currentGameIndex = currentIndex
+                            root.saveState("game_changed")
+                        }
+                    }
+
+                    onSwitchToListView: {
+                        console.log("Switching to List View")
+                        root.gamesViewMode = "list"
+                        api.memory.set('gamesViewMode', "list")
+                        gamesListView.currentIndex = gamesGridView.currentIndex
+                    }
+                }
+
+                GamesListView {
+                    id: gamesListView
+                    visible: gamesViewMode === "list"
+                    opacity: visible ? 1.0 : 0.0
+                    Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
+                    Layout.fillHeight: true
+                    currentIndex: root.currentGameIndex
+                    focus: root.focusedPanel === "games" && visible
+
+                    sharedFilter: sharedGamesFilter
+
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation {
+                            duration: 400
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200 }
+                    }
+
+                    onCurrentIndexChanged: {
+                        if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
+                            root.currentGameIndex = currentIndex
+                            root.saveState("game_changed")
+                        }
+                    }
+
+                    onSwitchToGridView: {
+                        console.log("Switching to Grid View")
+                        root.gamesViewMode = "grid"
+                        api.memory.set('gamesViewMode', "grid")
+                        gamesGridView.currentIndex = gamesListView.currentIndex
+                    }
+                }
+
+                GameDetailsPanel {
+                    id: gameDetailsPanel
+                    property var sharedFilter: sharedGamesFilter
+                    Layout.preferredWidth: detailsExpanded ? root.width * 0.39 : root.width * 0.24
+                    Layout.fillHeight: true
+
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation {
+                            duration: 400
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    onExpansionChanged: {
+                        root.detailsExpanded = expanded
+                        console.log("Details panel expanded:", expanded)
+
+                        if (expanded) {
+                            root.focusedPanel = "details"
+                        }
                     }
                 }
             }
 
-            GamesGridView {
-                id: gamesGridView
-                visible: gamesViewMode === "grid"
-                opacity: visible ? 1.0 : 0.0
-                Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
-                Layout.fillHeight: true
-                currentIndex: root.currentGameIndex
-                focus: root.focusedPanel === "games" && visible
-
-                sharedFilter: sharedGamesFilter
-
-                columns: detailsExpanded ? 3 : 4
-                rows: 3
-
-                Behavior on Layout.preferredWidth {
-                    NumberAnimation {
-                        duration: 400
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 200 }
-                }
-
-                onCurrentIndexChanged: {
-                    if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
-                        root.currentGameIndex = currentIndex
-                        root.saveState("game_changed")
-                    }
-                }
-
-                onSwitchToListView: {
-                    console.log("Switching to List View")
-                    root.gamesViewMode = "list"
-                    api.memory.set('gamesViewMode', "list")
-                    gamesListView.currentIndex = gamesGridView.currentIndex
-                }
-            }
-
-            GamesListView {
-                id: gamesListView
-                visible: gamesViewMode === "list"
-                opacity: visible ? 1.0 : 0.0
-                Layout.preferredWidth: detailsExpanded ? root.width * 0.33 : root.width * 0.48
-                Layout.fillHeight: true
-                currentIndex: root.currentGameIndex
-                focus: root.focusedPanel === "games" && visible
-
-                sharedFilter: sharedGamesFilter
-
-                Behavior on Layout.preferredWidth {
-                    NumberAnimation {
-                        duration: 400
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 200 }
-                }
-
-                onCurrentIndexChanged: {
-                    if (!root.isRestoringState && root.currentGameIndex !== currentIndex) {
-                        root.currentGameIndex = currentIndex
-                        root.saveState("game_changed")
-                    }
-                }
-
-                onSwitchToGridView: {
-                    console.log("Switching to Grid View")
-                    root.gamesViewMode = "grid"
-                    api.memory.set('gamesViewMode', "grid")
-                    gamesGridView.currentIndex = gamesListView.currentIndex
-                }
-            }
-
-            GameDetailsPanel {
-                id: gameDetailsPanel
-                property var sharedFilter: sharedGamesFilter
-                Layout.preferredWidth: detailsExpanded ? root.width * 0.39 : root.width * 0.24
-                Layout.fillHeight: true
-
-                Behavior on Layout.preferredWidth {
-                    NumberAnimation {
-                        duration: 400
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                onExpansionChanged: {
-                    root.detailsExpanded = expanded
-                    console.log("Details panel expanded:", expanded)
-
-                    if (expanded) {
-                        root.focusedPanel = "details"
-                    }
-                }
+            BottomBar {
+                id: bottomBar
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.height * 0.08
+                Layout.minimumHeight: 60
             }
         }
     }
