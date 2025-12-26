@@ -224,8 +224,8 @@ Item {
             Layout.fillHeight: true
             color: dropdownVisible ? "#333" : "transparent"
             radius: vpx(4)
-            border.width: vpx(2)
-            border.color: dropdownVisible ? root.accentColor : "transparent"
+            border.width: vpx(1)
+            border.color: dropdownVisible ? root.accentColor : "#333"
 
             Behavior on color {
                 ColorAnimation { duration: 150 }
@@ -539,7 +539,7 @@ Item {
             anchors.fill: parent
             radius: vpx(6)
             color: root.panelColor
-            border.width: vpx(1)
+            border.width: vpx(3)
             border.color: root.accentColor
             clip: true
 
@@ -553,7 +553,7 @@ Item {
                     text: "Music Playlist (" + musicTracks.length + ")"
                     color: root.accentColor
                     font.family: root.condensedFontFamily
-                    font.pixelSize: vpx(13)
+                    font.pixelSize: vpx(16)
                     font.bold: true
                     bottomPadding: vpx(8)
                 }
