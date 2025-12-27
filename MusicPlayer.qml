@@ -536,6 +536,22 @@ Item {
         visible: dropdownVisible
         z: 200
 
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onWheel: {
+                wheel.accepted = true;
+            }
+
+            onClicked: {
+                mouse.accepted = true;
+            }
+
+            onPositionChanged: {
+                mouse.accepted = true;
+            }
+        }
+
         Rectangle {
             id: dropdownPopup
             anchors.fill: parent
