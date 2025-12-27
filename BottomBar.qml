@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import QtGraphicalEffects 1.12
 
 Rectangle {
     id: bottomBar
@@ -8,19 +9,154 @@ Rectangle {
     border.width: vpx(1)
     radius: vpx(8)
 
+    property bool videoIsPlaying: false
+
     function vpx(value) {
         return Math.round(value * root.height / 1080)
+    }
+
+    Canvas {
+        id: audioVisualization
+        anchors.fill: parent
+        opacity: {
+            var musicPlaying = musicPlayerLoader.item && musicPlayerLoader.item.isPlaying
+            var videoPlaying = bottomBar.videoIsPlaying
+            return (musicPlaying || videoPlaying) ? 0.15 : 0
+        }
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 500; easing.type: Easing.InOutQuad }
+        }
+
+        property int barCount: 250
+        property var barHeights: []
+        property real time: 0
+        property real beatIntensity: 0
+        property int beatCounter: 0
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+
+            var barWidth = width / barCount
+            var actualBarWidth = barWidth * 0.8
+            var gradient = ctx.createLinearGradient(0, 0, width, 0)
+            gradient.addColorStop(0, Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.6))
+            gradient.addColorStop(0.5, Qt.rgba(root.accentColor.r * 1.2, root.accentColor.g * 1.2, root.accentColor.b * 1.5, 0.8))
+            gradient.addColorStop(1, Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.6))
+
+            ctx.fillStyle = gradient
+
+            for (var i = 0; i < barCount; i++) {
+                var barHeight = barHeights[i] || 0
+                var x = i * barWidth + (barWidth - actualBarWidth) / 2
+                var y = height - barHeight
+
+                ctx.fillRect(x, y, actualBarWidth, barHeight)
+            }
+        }
+
+        Timer {
+            interval: 50
+            running: {
+                var musicPlaying = musicPlayerLoader.item && musicPlayerLoader.item.isPlaying
+                var videoPlaying = bottomBar.videoIsPlaying
+                return musicPlaying || videoPlaying
+            }
+            repeat: true
+            onTriggered: {
+                parent.time += 0.1
+                parent.beatCounter++
+
+                if (parent.beatCounter % 12 === 0) {
+                    parent.beatIntensity = 0.8 + Math.random() * 0.4
+                } else if (parent.beatCounter % 6 === 0) {
+                    parent.beatIntensity = 0.4 + Math.random() * 0.3
+                } else {
+                    parent.beatIntensity *= 0.85
+                }
+
+                for (var i = 0; i < parent.barCount; i++) {
+                    var freq1 = Math.sin(parent.time * 2 + i * 0.3) * 0.5 + 0.5
+                    var freq2 = Math.sin(parent.time * 3.5 + i * 0.15) * 0.5 + 0.5
+                    var freq3 = Math.sin(parent.time * 1.2 + i * 0.5) * 0.5 + 0.5
+
+                    var randomSpike = 0
+                    if (parent.beatIntensity > 0.3) {
+                        var spikeChance = Math.random()
+                        if (spikeChance > 0.85) {
+                            randomSpike = parent.beatIntensity * (0.5 + Math.random() * 0.5)
+                        }
+                    }
+
+                    var baseIntensity = (freq1 * 0.3 + freq2 * 0.25 + freq3 * 0.25)
+                    var beatBoost = parent.beatIntensity * 0.3
+                    var intensity = Math.min(1.0, baseIntensity + beatBoost + randomSpike)
+                    var baseHeight = parent.height * 0.08
+                    var maxHeight = parent.height * 0.35
+                    var targetHeight = baseHeight + (maxHeight - baseHeight) * intensity
+
+                    var smoothFactor = parent.beatIntensity > 0.4 ? 0.5 : 0.7
+                    if (!parent.barHeights[i]) {
+                        parent.barHeights[i] = targetHeight
+                    } else {
+                        parent.barHeights[i] = parent.barHeights[i] * smoothFactor + targetHeight * (1 - smoothFactor)
+                    }
+                }
+
+                parent.requestPaint()
+            }
+        }
+
+        NumberAnimation {
+            id: fadeInAnimation
+            target: audioVisualization
+            property: "time"
+            from: 0
+            to: 100
+            duration: 2000
+            running: {
+                var musicPlaying = musicPlayerLoader.item && musicPlayerLoader.item.isPlaying
+                var videoPlaying = bottomBar.videoIsPlaying
+                return musicPlaying || videoPlaying
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "transparent"
+        border.width: vpx(1)
+        border.color: root.accentColor
+        radius: parent.radius
+        opacity: {
+            var musicPlaying = musicPlayerLoader.item && musicPlayerLoader.item.isPlaying
+            var videoPlaying = bottomBar.videoIsPlaying
+            return (musicPlaying || videoPlaying) ? 0.1 : 0
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: 500 }
+        }
     }
 
     RowLayout {
         anchors.fill: parent
         anchors.margins: vpx(12)
         spacing: vpx(20)
+        z: 10
 
-        MusicPlayer {
+        Loader {
+            id: musicPlayerLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.maximumWidth: vpx(600)
+            sourceComponent: Component {
+                MusicPlayer {
+                    id: musicPlayerInstance
+                }
+            }
         }
 
         Item {

@@ -476,10 +476,15 @@ Item {
                     }
 
                     onPlaybackStateChanged: {
+                        root.videoPlayingInDetails = (playbackState === MediaPlayer.PlayingState)
                         if (playbackState === MediaPlayer.PlayingState) {
                             videoControls.opacity = 1
                             hideControlsTimer.restart()
                         }
+                    }
+
+                    onSourceChanged: {
+                        root.videoPlayingInDetails = false
                     }
                 }
             }

@@ -23,6 +23,7 @@ FocusScope {
     property color borderColor: "#333333"
     property string fontFamily: global.fonts.sans
     property string condensedFontFamily: global.fonts.condensed
+    property bool videoPlayingInDetails: false
 
     property var currentGame: {
         if (sharedGamesFilter.filteredModel &&
@@ -266,6 +267,7 @@ FocusScope {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.height * 0.08
                 Layout.minimumHeight: 60
+                videoIsPlaying: root.videoPlayingInDetails
             }
         }
     }
