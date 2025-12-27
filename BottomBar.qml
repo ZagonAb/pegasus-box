@@ -206,14 +206,23 @@ Rectangle {
                     }
 
                     Text {
-                        text: !isNaN(api.device.batteryPercent) ?
-                        Math.round(api.device.batteryPercent * 100) + "%" :
-                        "N/A"
+                        text: Math.round(api.device.batteryPercent * 100) + "%"
                         font.family: root.fontFamily
                         font.pixelSize: vpx(24)
-                        font.bold: !isNaN(api.device.batteryPercent)
-                        color: !isNaN(api.device.batteryPercent) ? root.textColor : root.secondaryTextColor
+                        font.bold: true
+                        color: root.textColor
                         anchors.verticalCenter: parent.verticalCenter
+                        visible: !isNaN(api.device.batteryPercent)
+                    }
+
+                    Image {
+                        width: vpx(50)
+                        height: vpx(50)
+                        source: "assets/images/icons/no_battery.svg"
+                        fillMode: Image.PreserveAspectFit
+                        mipmap: true
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: isNaN(api.device.batteryPercent)
                     }
                 }
 
@@ -227,17 +236,39 @@ Rectangle {
                     spacing: vpx(2)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
-                        id: timeText
-                        text: Qt.formatTime(new Date(), "hh:mm")
-                        font.family: root.condensedFontFamily
-                        font.pixelSize: vpx(28)
-                        font.bold: true
-                        color: root.textColor
+                    Row {
+                        spacing: vpx(8)
+
+                        Text {
+                            id: timeText
+                            text: Qt.formatTime(new Date(), "hh:mm")
+                            font.family: root.condensedFontFamily
+                            font.pixelSize: vpx(28)
+                            font.bold: true
+                            color: root.textColor
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Image {
+                            id: hourIcon
+                            width: vpx(28)
+                            height: vpx(28)
+                            anchors.verticalCenter: parent.verticalCenter
+                            source: {
+                                var currentDate = new Date()
+                                var hour24 = currentDate.getHours()
+                                var hour12 = hour24 % 12
+                                if (hour12 === 0) hour12 = 12
+                                    return "assets/images/icons/CLOCK/hour_" + hour12 + ".svg"
+                            }
+                            fillMode: Image.PreserveAspectFit
+                            mipmap: true
+                        }
                     }
 
                     Text {
-                        text: Qt.formatDate(new Date(), "ddd, MMM dd")
+                        id: dateText
+                        text: Qt.formatDate(new Date(), "dd/MM/yy")
                         font.family: root.fontFamily
                         font.pixelSize: vpx(25)
                         color: root.secondaryTextColor
@@ -252,7 +283,14 @@ Rectangle {
         running: true
         repeat: true
         onTriggered: {
-            timeText.text = Qt.formatTime(new Date(), "hh:mm")
+            var currentDate = new Date()
+            timeText.text = Qt.formatTime(currentDate, "hh:mm")
+            dateText.text = Qt.formatDate(currentDate, "dd/MM/yy")
+
+            var hour24 = currentDate.getHours()
+            var hour12 = hour24 % 12
+            if (hour12 === 0) hour12 = 12
+                hourIcon.source = "assets/images/icons/CLOCK/hour_" + hour12 + ".svg"
         }
     }
 }
