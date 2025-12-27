@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import SortFilterProxyModel 0.2
+import QtGraphicalEffects 1.12
 import "utils.js" as Utils
 
 FocusScope {
@@ -120,6 +121,19 @@ FocusScope {
         id: background
         anchors.fill: parent
         color: backgroundColor
+
+        RadialGradient {
+            anchors.centerIn: parent
+            width: parent.width * 2
+            height: parent.height * 2
+            opacity: 0.1
+
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.5) }
+                GradientStop { position: 0.3; color: "#0a0a0a" }
+                GradientStop { position: 1.0; color: "#030303" }
+            }
+        }
 
         ColumnLayout {
             anchors.fill: parent
