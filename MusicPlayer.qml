@@ -78,12 +78,14 @@ Item {
 
     function loadMusicList() {
         var hardcodedTracks = [
+            "assets/music/Doom E1M1.mp3",
             "assets/music/Crazy Taxi.mp3",
             "assets/music/Jester Elysium.mp3",
             "assets/music/Sonic the Hedgehog 3.mp3",
             "assets/music/Sled Storm.mp3",
             "assets/music/TOCA Ingame.mp3",
-            "assets/music/Mortal Kombat.mp3"
+            "assets/music/Mortal Kombat.mp3",
+            "assets/music/AMB BIKR.mp3"
         ]
         var availableTracks = []
         for (var i = 0; i < hardcodedTracks.length; i++) {
