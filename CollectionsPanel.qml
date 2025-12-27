@@ -32,28 +32,62 @@ FocusScope {
         }
     }
 
-    Text {
-        id: panelTitle
-        text: "PEGASUS BOX"
-        color: accentColor
-        font.family: condensedFontFamily
-        font.pixelSize: vpx(24)
-        font.bold: true
+    RowLayout {
+        id: titleRow
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
             margins: vpx(20)
         }
+        height: vpx(30)
+        spacing: vpx(5)
+
+        Item {
+            Layout.preferredWidth: vpx(30)
+            Layout.preferredHeight: vpx(30)
+            Layout.alignment: Qt.AlignVCenter
+
+            Image {
+                id: panelIcon
+                anchors.fill: parent
+                source: "assets/images/icons/pegasusbox.svg"
+                fillMode: Image.PreserveAspectFit
+                mipmap: true
+                sourceSize: Qt.size(vpx(30), vpx(30))
+                visible: false
+            }
+
+            ColorOverlay {
+                anchors.fill: panelIcon
+                source: panelIcon
+                color: accentColor
+                cached: true
+            }
+        }
+
+        Text {
+            id: panelTitle
+            text: "PEGASUS BOX"
+            color: accentColor
+            font.family: condensedFontFamily
+            font.pixelSize: vpx(24)
+            font.bold: true
+            Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+            Layout.fillWidth: true
+            verticalAlignment: Text.AlignVCenter
+            height: implicitHeight
+        }
     }
 
     CollectionTopSection {
         id: topSection
         anchors {
-            top: panelTitle.bottom
+            top: titleRow.bottom
             left: parent.left
             right: parent.right
             margins: vpx(15)
+            topMargin: vpx(15)
         }
         height: vpx(120)
         z: 2
