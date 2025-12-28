@@ -17,6 +17,32 @@ Item {
     property color highlightColor: "#E91E63"
     property color achievementColor: "#9C27B0"
 
+    function getSystemImagePath(game) {
+        if (!game || !game.collections || game.collections.count === 0) {
+            return "";
+        }
+
+        var gameCollection = game.collections.get(0);
+        if (!gameCollection || !gameCollection.shortName) {
+            return "";
+        }
+
+        return "assets/images/systems/" + gameCollection.shortName.toLowerCase() + ".png";
+    }
+
+    function getCollectionShortName(game) {
+        if (!game || !game.collections || game.collections.count === 0) {
+            return "??";
+        }
+
+        var gameCollection = game.collections.get(0);
+        if (!gameCollection || !gameCollection.shortName) {
+            return "??";
+        }
+
+        return gameCollection.shortName.substring(0, 2).toUpperCase();
+    }
+
     function updateNotifications() {
         var newNotifications = []
         var lastPlayedGame = findLastPlayedGame()
@@ -273,36 +299,83 @@ Item {
                             radius: vpx(6)
                             color: "transparent"
 
-                            Image {
-                                id: gameImage
-                                anchors.centerIn: parent
-                                width: vpx(100)
-                                height: vpx(100)
-                                source: currentNotification.game ?
-                                (currentNotification.game.assets.screenshot || currentNotification.game.assets.logo || "") : ""
-                                fillMode: Image.PreserveAspectFit
-                                asynchronous: true
-                                cache: true
-                                mipmap: true
-                                opacity: status === Image.Ready ? 1.0 : 0.3
+                            Item {
+                                id: gameContent
+                                anchors.fill: parent
+                                anchors.margins: vpx(2)
+                                visible: currentNotification.game
 
-                                Behavior on opacity {
-                                    NumberAnimation { duration: 300 }
+                                Image {
+                                    id: gameImage
+                                    anchors.fill: parent
+                                    source: currentNotification.game && currentNotification.game.assets ?
+                                    currentNotification.game.assets.screenshot : ""
+                                    fillMode: Image.PreserveAspectFit
+                                    asynchronous: true
+                                    cache: true
+                                    mipmap: true
+                                    visible: status === Image.Ready
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 300 }
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: systemIconContainer
+                                    anchors.centerIn: parent
+                                    anchors.fill: parent
+                                    radius: vpx(6)
+                                    color: "transparent"
+                                    visible: !gameImage.visible
+
+                                    Image {
+                                        id: systemImage
+                                        anchors.centerIn: parent
+                                        width: vpx(80)
+                                        height: vpx(80)
+                                        anchors.margins: vpx(5)
+                                        source: currentNotification.game ?
+                                        recentActivityPanel.getSystemImagePath(currentNotification.game) : ""
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true
+                                        mipmap: true
+                                        visible: status === Image.Ready && source !== ""
+                                    }
+
+                                    Text {
+                                        id: shrtNameCollection
+                                        anchors.centerIn: parent
+                                        text: currentNotification.game ?
+                                        recentActivityPanel.getCollectionShortName(currentNotification.game) : "??"
+                                        color: root.textColor
+                                        font.family: root.condensedFontFamily
+                                        font.pixelSize: vpx(32)
+                                        font.bold: true
+                                        visible: !systemImage.visible || systemImage.status !== Image.Ready
+                                    }
                                 }
                             }
 
-                            Image {
-                                id: backupIcon
-                                anchors.centerIn: parent
-                                width: vpx(60)
-                                height: vpx(60)
-                                source: currentNotification.icon
-                                fillMode: Image.PreserveAspectFit
-                                mipmap: true
-                                opacity: gameImage.status !== Image.Ready ? 0.9 : 0
+                            Item {
+                                id: notificationContent
+                                anchors.fill: parent
+                                anchors.margins: vpx(2)
+                                visible: !currentNotification.game
 
-                                Behavior on opacity {
-                                    NumberAnimation { duration: 300 }
+                                Image {
+                                    id: backupIcon
+                                    anchors.centerIn: parent
+                                    width: vpx(60)
+                                    height: vpx(60)
+                                    source: currentNotification.icon
+                                    fillMode: Image.PreserveAspectFit
+                                    mipmap: true
+                                    opacity: 0.9
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 300 }
+                                    }
                                 }
                             }
                         }
