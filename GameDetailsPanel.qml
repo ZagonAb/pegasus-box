@@ -13,6 +13,11 @@ Item {
 
     signal expansionChanged(bool expanded)
 
+    onDisplayGameChanged: {
+        detailsFlickable.contentY = 0
+        autoScrollToTopTimer.stop()
+    }
+
     Component {
         id: infoCardComponent
 
@@ -287,6 +292,40 @@ Item {
         contentWidth: width
         contentHeight: detailsColumn.height
         boundsBehavior: Flickable.StopAtBounds
+
+        onMovementEnded: {
+            if (contentY > 0) {
+                autoScrollToTopTimer.restart()
+            }
+        }
+
+        onFlickEnded: {
+            if (contentY > 0) {
+                autoScrollToTopTimer.restart()
+            }
+        }
+
+        onMovementStarted: {
+            autoScrollToTopTimer.stop()
+        }
+
+        Timer {
+            id: autoScrollToTopTimer
+            interval: 60000
+            repeat: false
+            onTriggered: {
+                scrollToTopAnimation.start()
+            }
+        }
+
+        NumberAnimation {
+            id: scrollToTopAnimation
+            target: detailsFlickable
+            property: "contentY"
+            to: 0
+            duration: 500
+            easing.type: Easing.OutCubic
+        }
 
         Column {
             id: detailsColumn

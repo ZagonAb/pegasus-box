@@ -143,15 +143,15 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: vpx(12)
+        anchors.margins: vpx(8)
         spacing: vpx(20)
         z: 10
 
         Loader {
             id: musicPlayerLoader
-            Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.maximumWidth: vpx(600)
+            Layout.preferredWidth: vpx(500)
+            Layout.maximumWidth: vpx(500)
             sourceComponent: Component {
                 MusicPlayer {
                     id: musicPlayerInstance
@@ -162,10 +162,26 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumWidth: vpx(10)
+        }
+
+        RecentActivityPanel {
+            id: recentActivityPanel
+            Layout.fillHeight: true
+            Layout.preferredWidth: vpx(450)
+            Layout.maximumWidth: vpx(450)
+            Layout.minimumWidth: vpx(350)
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumWidth: vpx(20)
         }
 
         Item {
             Layout.fillHeight: true
+            Layout.preferredWidth: vpx(250)
 
             RowLayout {
                 anchors.right: parent.right

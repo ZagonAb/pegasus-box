@@ -152,7 +152,7 @@ FocusScope {
                 model: api.collections
                 currentIndex: collectionsPanel.currentIndex
 
-                delegate: Item {
+                /*delegate: Item {
                     width: collectionsList.width
                     height: vpx(40)
 
@@ -198,6 +198,7 @@ FocusScope {
                                 }
 
                                 Text {
+                                    id: shrtNameCollection
                                     anchors.centerIn: parent
                                     text: modelData.shortName ?
                                     modelData.shortName.substring(0, 2).toUpperCase() : "??"
@@ -206,6 +207,104 @@ FocusScope {
                                     font.pixelSize: vpx(10)
                                     font.bold: true
                                     visible: !parent.children[0].visible
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - vpx(40)
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: vpx(2)
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.name
+                                    color: isCurrent ? "#ffffff" : textColor
+                                    font.family: condensedFontFamily
+                                    font.pixelSize: vpx(12)
+                                    elide: Text.ElideRight
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.games.count + " games"
+                                    color: isCurrent ? "#dddddd" : secondaryTextColor
+                                    font.family: condensedFontFamily
+                                    font.pixelSize: vpx(10)
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: root.selectCollectionWithMouse(index)
+                        }
+                    }
+                }*/
+
+                delegate: Item {
+                    width: collectionsList.width
+                    height: vpx(40)
+
+                    readonly property bool isCurrent: index === collectionsList.currentIndex
+                    readonly property bool panelHasFocus: parent ? parent.focus : false
+                    readonly property string systemImagePath: "assets/images/systems/" +
+                    (modelData.shortName ? modelData.shortName.toLowerCase() : "") + ".png"
+
+                    Rectangle {
+                        id: itemBackground
+                        anchors.fill: parent
+                        anchors.margins: vpx(1)
+
+                        color: {
+                            if (isCurrent) {
+                                return root.focusedPanel === "collections" ? accentColor : borderColor
+                            }
+                            if (mouseArea.containsMouse && mouseArea.pressed === false) {
+                                return "#333333"
+                            }
+                            return "transparent"
+                        }
+
+                        radius: vpx(3)
+                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: vpx(8)
+                            spacing: vpx(10)
+
+                            Rectangle {
+                                width: vpx(24)
+                                height: vpx(24)
+                                radius: vpx(3)
+                                color: "#333"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Image {
+                                    id: systemImage
+                                    anchors.fill: parent
+                                    anchors.margins: vpx(2)
+                                    source: systemImagePath
+                                    fillMode: Image.PreserveAspectFit
+                                    visible: status === Image.Ready
+                                    asynchronous: true
+                                    mipmap: true
+                                }
+
+                                Text {
+                                    id: shrtNameCollection
+                                    anchors.centerIn: parent
+                                    text: modelData.shortName ?
+                                    modelData.shortName.substring(0, 2).toUpperCase() : "??"
+                                    color: textColor
+                                    font.family: condensedFontFamily
+                                    font.pixelSize: vpx(10)
+                                    font.bold: true
+                                    visible: systemImage.status !== Image.Ready
                                 }
                             }
 
