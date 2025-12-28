@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtMultimedia 5.15
+import QtQuick.Layouts 1.15
 import "qrc:/qmlutils" as PegasusUtils
 import "utils.js" as Utils
 
@@ -11,6 +12,138 @@ Item {
     property var displayGame: root.currentFilteredGame
 
     signal expansionChanged(bool expanded)
+
+    Component {
+        id: infoCardComponent
+
+        Rectangle {
+            id: infoCard
+
+            property string iconSource: ""
+            property string label: ""
+            property string value: ""
+            property color cardColor: "#2A2A2A"
+            property color iconColor: accentColor
+            property color labelTextColor: secondaryTextColor
+            property color valueTextColor: textColor
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: vpx(65)
+            radius: vpx(6)
+            color: cardColor
+
+            MouseArea {
+                id: hoverArea
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+
+            layer.enabled: true
+            layer.effect: DropShadow {
+                horizontalOffset: 0
+                verticalOffset: vpx(2)
+                radius: vpx(6)
+                samples: 13
+                color: "#20000000"
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: "transparent"
+                border.width: vpx(1)
+                border.color: hoverArea.containsMouse ? accentColor : "#404040"
+                opacity: hoverArea.containsMouse ? 0.8 : 0.3
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 200 }
+                }
+
+                Behavior on border.color {
+                    ColorAnimation { duration: 200 }
+                }
+            }
+
+            RowLayout {
+                anchors {
+                    fill: parent
+                    margins: vpx(12)
+                }
+                spacing: vpx(12)
+
+                Rectangle {
+                    Layout.preferredWidth: vpx(40)
+                    Layout.preferredHeight: vpx(40)
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: vpx(8)
+                    color: "#1A1A1A"
+
+                    Image {
+                        id: icon
+                        anchors.centerIn: parent
+                        width: vpx(24)
+                        height: vpx(24)
+                        source: iconSource
+                        sourceSize: Qt.size(width, height)
+                        mipmap: true
+                        visible: false
+                    }
+
+                    ColorOverlay {
+                        anchors.fill: icon
+                        source: icon
+                        color: iconColor
+                        cached: false
+                    }
+
+                    Glow {
+                        anchors.fill: icon
+                        source: icon
+                        radius: vpx(8)
+                        samples: 17
+                        color: iconColor
+                        opacity: hoverArea.containsMouse ? 0.6 : 0
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 200 }
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: vpx(4)
+
+                    Text {
+                        text: label
+                        color: labelTextColor
+                        font.family: condensedFontFamily
+                        font.pixelSize: vpx(11)
+                        font.bold: true
+                        opacity: 0.7
+                        Layout.fillWidth: true
+                    }
+
+                    Text {
+                        text: value
+                        color: valueTextColor
+                        font.family: fontFamily
+                        font.pixelSize: vpx(16)
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            scale: hoverArea.containsMouse ? 1.01 : 1.0
+
+            Behavior on scale {
+                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+            }
+        }
+    }
 
     MouseArea {
         anchors.fill: parent
@@ -573,6 +706,25 @@ Item {
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
 
+                    function scrollToItem(itemX, itemWidth) {
+                        var itemCenter = itemX + itemWidth / 2
+                        var viewCenter = contentX + width / 2
+                        var targetX = itemCenter - width / 2
+
+                        targetX = Math.max(0, Math.min(targetX, contentWidth - width))
+
+                        scrollAnimation.to = targetX
+                        scrollAnimation.start()
+                    }
+
+                    NumberAnimation {
+                        id: scrollAnimation
+                        target: mediaFlickable
+                        property: "contentX"
+                        duration: 300
+                        easing.type: Easing.OutCubic
+                    }
+
                     Row {
                         id: mediaRow
                         spacing: vpx(8)
@@ -652,6 +804,9 @@ Item {
 
                                     onClicked: {
                                         mediaPreview.currentMediaIndex = index
+                                        var itemX = index * (vpx(90) + vpx(8))
+                                        mediaFlickable.scrollToItem(itemX, vpx(90))
+
                                         if (modelData.isVideo) {
                                             videoPlayer.play()
                                         }
@@ -726,10 +881,10 @@ Item {
                 visible: text !== ""
             }
 
-            Column {
+            ColumnLayout {
                 id: basicInfoColumn
                 width: parent.width
-                spacing: vpx(12)
+                spacing: vpx(16)
                 visible: displayGame
 
                 Text {
@@ -738,53 +893,113 @@ Item {
                     font.family: condensedFontFamily
                     font.pixelSize: vpx(16)
                     font.bold: true
+                    Layout.fillWidth: true
                 }
 
-                DetailRow {
-                    label: "Year:"
-                    value: displayGame && displayGame.releaseYear > 0 ?
-                    displayGame.releaseYear.toString() : "Unknown"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+                    spacing: vpx(10)
+
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
+
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/year.svg"
+                            item.label = "YEAR"
+                            item.value = Qt.binding(function() {
+                                return displayGame && displayGame.releaseYear > 0 ?
+                                displayGame.releaseYear.toString() : "Unknown"
+                            })
+                        }
+                    }
+
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
+
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/genre.svg"
+                            item.label = "GENRE"
+                            item.value = Qt.binding(function() {
+                                return displayGame && displayGame.genre ?
+                                Utils.getFirstGenre(displayGame) : "Unknown"
+                            })
+                        }
+                    }
                 }
 
-                DetailRow {
-                    label: "Developer:"
-                    value: displayGame && displayGame.developer ?
-                    displayGame.developer : "Unknown"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
+                Loader {
+                    sourceComponent: infoCardComponent
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: vpx(65)
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+
+                    onLoaded: {
+                        item.iconSource = "assets/images/icons/developer.svg"
+                        item.label = "DEVELOPER"
+                        item.value = Qt.binding(function() {
+                            return displayGame && displayGame.developer ?
+                            displayGame.developer : "Unknown"
+                        })
+                    }
                 }
 
-                DetailRow {
-                    label: "Publisher:"
-                    value: displayGame && displayGame.publisher ?
-                    displayGame.publisher : "Unknown"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
+                Loader {
+                    sourceComponent: infoCardComponent
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: vpx(65)
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+
+                    onLoaded: {
+                        item.iconSource = "assets/images/icons/publisher.svg"
+                        item.label = "PUBLISHER"
+                        item.value = Qt.binding(function() {
+                            return displayGame && displayGame.publisher ?
+                            displayGame.publisher : "Unknown"
+                        })
+                    }
                 }
 
-                DetailRow {
-                    label: "Genre:"
-                    value: displayGame && displayGame.genre ?
-                    Utils.getFirstGenre(displayGame) : "Unknown"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
-                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+                    spacing: vpx(10)
 
-                DetailRow {
-                    label: "Players:"
-                    value: displayGame ? displayGame.players + "P" : "1P"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
-                }
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
 
-                DetailRow {
-                    label: "Rating:"
-                    value: displayGame ? Math.round(displayGame.rating * 100) + "%" : "0%"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
-                    showDivider: true
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/players.svg"
+                            item.label = "PLAYERS"
+                            item.value = Qt.binding(function() {
+                                return displayGame ? displayGame.players + "P" : "1P"
+                            })
+                        }
+                    }
+
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
+
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/rating.svg"
+                            item.label = "RATING"
+                            item.value = Qt.binding(function() {
+                                return displayGame ? Math.round(displayGame.rating * 100) + "%" : "0%"
+                            })
+                        }
+                    }
                 }
             }
 
@@ -834,10 +1049,10 @@ Item {
                 }
             }
 
-            Column {
+            ColumnLayout {
                 id: statsColumn
                 width: parent.width
-                spacing: vpx(12)
+                spacing: vpx(16)
                 visible: displayGame && (displayGame.playCount > 0 || displayGame.playTime > 0)
 
                 Text {
@@ -846,29 +1061,76 @@ Item {
                     font.family: condensedFontFamily
                     font.pixelSize: vpx(16)
                     font.bold: true
+                    Layout.fillWidth: true
                 }
 
-                DetailRow {
-                    label: "Play Count:"
-                    value: displayGame ? displayGame.playCount.toString() : "0"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+                    spacing: vpx(10)
+
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
+
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/playcount.svg"
+                            item.label = "PLAY COUNT"
+                            item.value = Qt.binding(function() {
+                                return displayGame ? displayGame.playCount.toString() : "0"
+                            })
+                        }
+                    }
+
+                    Loader {
+                        sourceComponent: infoCardComponent
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: vpx(65)
+
+                        onLoaded: {
+                            item.iconSource = "assets/images/icons/playtime.svg"
+                            item.label = "PLAY TIME"
+                            item.value = Qt.binding(function() {
+                                return displayGame ? Utils.formatPlayTime(displayGame.playTime) : "0h 0m"
+                            })
+                        }
+                    }
                 }
 
-                DetailRow {
-                    label: "Play Time:"
-                    value: displayGame ? Utils.formatPlayTime(displayGame.playTime) : "0h 0m"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
+                Loader {
+                    sourceComponent: infoCardComponent
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: vpx(65)
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+
+                    onLoaded: {
+                        item.iconSource = "assets/images/icons/lastplayed.svg"
+                        item.label = "LAST PLAYED"
+                        item.value = Qt.binding(function() {
+                            return displayGame && displayGame.lastPlayed ?
+                            Utils.formatDate(displayGame.lastPlayed) : "Never"
+                        })
+                    }
                 }
 
-                DetailRow {
-                    label: "Last Played:"
-                    value: displayGame && displayGame.lastPlayed ?
-                    Utils.formatDate(displayGame.lastPlayed) : "Never"
-                    labelColor: secondaryTextColor
-                    valueColor: textColor
-                    showDivider: true
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: vpx(2)
+                    Layout.leftMargin: vpx(6)
+                    Layout.rightMargin: vpx(6)
+                    radius: height / 2
+                    color: "#333"
+
+                    Rectangle {
+                        width: vpx(60)
+                        height: parent.height
+                        radius: parent.radius
+                        color: accentColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
                 }
             }
 
