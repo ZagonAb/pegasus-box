@@ -64,7 +64,9 @@ Rectangle {
                 var videoPlaying = bottomBar.videoIsPlaying
                 return musicPlaying || videoPlaying
             }
+
             repeat: true
+
             onTriggered: {
                 parent.time += 0.1
                 parent.beatCounter++
