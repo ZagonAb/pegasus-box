@@ -10,18 +10,22 @@
 
 ## 🎨 Icons
 
-Some icons used in this project are provided by **Iconify**  
-https://icon-sets.iconify.design/
+- **Icons and UI Assets:**  
+  Certain icons and interface elements are sourced from the  
+  [RetroArch Assets repository](https://github.com/libretro/retroarch-assets) by the **Libretro Team**,  
+  licensed under the [CC-BY-4.0 license](https://creativecommons.org/licenses/by/4.0/).  
+  These assets may be used, modified, and redistributed with proper attribution.
 
-**License**
+- **Additional Icons:**  
+  Some icons used in this project are provided by  
+  [Iconify](https://icon-sets.iconify.design/).
 
-Iconify is an open source project.  
-Almost all parts of the project use the MIT license. Some older packages use Apache 2.0 and/or GPL 2.0 licenses.
+  **License:**  
+  Iconify is an open source project.  
+  Almost all parts of the project use the MIT license. Some older packages use Apache 2.0 and/or GPL 2.0 licenses.
 
-This license does not apply to icons.  
-Icon sets use various open source licenses, see each icon set for details.
-
-----
+  This license does not apply to icons.  
+  Icon sets use various open source licenses — see each icon set for details.
 
 ## Licencia
 
