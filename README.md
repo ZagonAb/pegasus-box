@@ -1,6 +1,6 @@
 <h1 align="left">
   PEGASUS BOX
-  <img src="https://raw.githubusercontent.com/ZagonAb/pegasusbox/c2535dd25f029c57a742af27af14eb9278bf3e73/assets/images/icons/pegasusbox.svg" width="32" align="right" />
+  <img src="https://github.com/ZagonAb/pegasusbox/blob/8a8903abc14ca0b32c40309b0220b445f502c722/assets/images/icons/pegasusbox.svg" width="32" align="right" />
 </h1>
 
 
