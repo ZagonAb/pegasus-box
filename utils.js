@@ -66,7 +66,7 @@ function saveToLocalStorage(key, value) {
             return true;
         }
     } catch (e) {
-        console.error("Error saving to localStorage:", e);
+        //console.error("Error saving to localStorage:", e);
     }
     return false;
 }
@@ -78,7 +78,7 @@ function loadFromLocalStorage(key, defaultValue) {
             return item ? JSON.parse(item) : defaultValue;
         }
     } catch (e) {
-        console.error("Error loading from localStorage:", e);
+        //console.error("Error loading from localStorage:", e);
     }
     return defaultValue;
 }
@@ -208,12 +208,12 @@ function getFilterAvailability(collection) {
             }
     }
 
-    console.log("Filter availability check for", collection.name + ":")
-    console.log("- Total games:", totalGames)
-    console.log("- Favorites:", favoritesCount, "available:", hasFavorites)
-    console.log("- Last played:", lastPlayedCount, "available:", hasLastPlayed)
-    console.log("- Rating:", ratingCount, "available:", hasRating)
-    console.log("- Year:", yearCount, "available:", hasYear)
+    //console.log("Filter availability check for", collection.name + ":")
+    //console.log("- Total games:", totalGames)
+    //console.log("- Favorites:", favoritesCount, "available:", hasFavorites)
+    //console.log("- Last played:", lastPlayedCount, "available:", hasLastPlayed)
+    //console.log("- Rating:", ratingCount, "available:", hasRating)
+    //console.log("- Year:", yearCount, "available:", hasYear)
 
     return {
         favorites: hasFavorites,
@@ -428,37 +428,37 @@ function getCollectionsForGame(game, api) {
 
 function launchExactGame(gameToLaunch, api) {
     if (!gameToLaunch || !gameToLaunch.title) {
-        console.error("Cannot launch: invalid game");
+        //console.error("Cannot launch: invalid game");
         return false;
     }
 
-    console.log("=== Searching for exact game ===");
-    console.log("Game title:", gameToLaunch.title);
-    console.log("Game ID:", gameToLaunch.id);
+    //console.log("=== Searching for exact game ===");
+    //console.log("Game title:", gameToLaunch.title);
+    //console.log("Game ID:", gameToLaunch.id);
 
     if (typeof gameToLaunch.launch === "function") {
-        console.log("Game has direct launch method");
+        //console.log("Game has direct launch method");
         gameToLaunch.launch();
         return true;
     }
 
     if (gameToLaunch.collections && gameToLaunch.collections.count > 0) {
-        console.log("Game belongs to", gameToLaunch.collections.count, "collection(s)");
+        //console.log("Game belongs to", gameToLaunch.collections.count, "collection(s)");
 
         for (var i = 0; i < gameToLaunch.collections.count; i++) {
             var gameCollection = gameToLaunch.collections.get(i);
-            console.log("Searching in collection:", gameCollection.name);
+            //console.log("Searching in collection:", gameCollection.name);
 
             for (var colIndex = 0; colIndex < api.collections.count; colIndex++) {
                 var collection = api.collections.get(colIndex);
                 if (collection.name === gameCollection.name) {
-                    console.log("Found matching collection:", collection.name);
+                    //console.log("Found matching collection:", collection.name);
 
                     if (gameToLaunch.id) {
                         for (var j = 0; j < collection.games.count; j++) {
                             var game = collection.games.get(j);
                             if (game && game.id === gameToLaunch.id) {
-                                console.log("✓ Found exact game by ID");
+                                //console.log("✓ Found exact game by ID");
                                 game.launch();
                                 return true;
                             }
@@ -472,20 +472,20 @@ function launchExactGame(gameToLaunch, api) {
 
                             if (gameToLaunch.developer && game.developer) {
                                 if (gameToLaunch.developer !== game.developer) {
-                                    console.log("Developer mismatch:", gameToLaunch.developer, "vs", game.developer);
+                                    //console.log("Developer mismatch:", gameToLaunch.developer, "vs", game.developer);
                                     isSameGame = false;
                                 }
                             }
 
                             if (gameToLaunch.releaseYear && game.releaseYear) {
                                 if (gameToLaunch.releaseYear !== game.releaseYear) {
-                                    console.log("Year mismatch:", gameToLaunch.releaseYear, "vs", game.releaseYear);
+                                    //console.log("Year mismatch:", gameToLaunch.releaseYear, "vs", game.releaseYear);
                                     isSameGame = false;
                                 }
                             }
 
                             if (isSameGame) {
-                                console.log("✓ Found exact game by title and metadata");
+                                //console.log("✓ Found exact game by title and metadata");
                                 game.launch();
                                 return true;
                             }
@@ -496,6 +496,6 @@ function launchExactGame(gameToLaunch, api) {
         }
     }
 
-    console.error("✗ Could not find exact game in its collections");
+    //console.error("✗ Could not find exact game in its collections");
     return false;
 }
