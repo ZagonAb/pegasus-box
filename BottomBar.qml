@@ -162,21 +162,21 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumWidth: vpx(10)
+            Layout.minimumWidth: vpx(30)
         }
 
         RecentActivityPanel {
             id: recentActivityPanel
             Layout.fillHeight: true
-            Layout.preferredWidth: vpx(450)
-            Layout.maximumWidth: vpx(450)
-            Layout.minimumWidth: vpx(350)
+            Layout.preferredWidth: vpx(800)
+            Layout.maximumWidth: vpx(800)
+            Layout.minimumWidth: vpx(600)
         }
 
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumWidth: vpx(20)
+            Layout.minimumWidth: vpx(15)
         }
 
         Item {
