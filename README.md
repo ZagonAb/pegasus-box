@@ -13,6 +13,14 @@
 
 ![screen](https://github.com/ZagonAb/pegasusbox/blob/91d5cdbdbf2e577ab4e1c92f1819aab4ef0e4496/.meta/screenshots/screen0.png)
 
+# Music Player - How to Add New Songs
+
+## Step-by-Step Guide
+1. **Copy your MP3 file** to the music folder: `assets/music`
+2. **Edit the MusicPlayer.qml file**
+3. **Locate the tracks list**: `function loadMusicList()`
+4. **Restart pegasus frontend**:
+
 ## Installation
 
 [Download](https://github.com/ZagonAb/pegasusbox/archive/refs/heads/main.zip) and extract the theme to your [theme directory](http://pegasus-frontend.org/docs/user-guide/installing-themes). You can then select it from the Pegasus settings menu.
