@@ -9,6 +9,7 @@ Item {
     property var gameModel: api.allGames
     property var currentNotification: notifications[currentNotificationIndex]
     property int currentNotificationIndex: 0
+    property int currentDeveloperIndex: 0
     property int autoAdvanceInterval: 5000
     property var notifications: []
     property var allCollectionProgress: []
@@ -118,15 +119,28 @@ Item {
 
         var anniversaryGame = findGameAnniversary()
         if (anniversaryGame) {
-            var yearsAgo = new Date().getFullYear() - anniversaryGame.releaseYear
+            var yearText = anniversaryGame.years + " year" + (anniversaryGame.years > 1 ? "s" : "")
+            var message = ""
+            var icon = "assets/images/icons/cake.svg"
+
+            if (anniversaryGame.type === "today") {
+                message = Utils.cleanGameTitle(anniversaryGame.game.title) + " was released " + yearText + " ago today! 🎂"
+            } else if (anniversaryGame.type === "upcoming") {
+                message = Utils.cleanGameTitle(anniversaryGame.game.title) + " turns " + anniversaryGame.years +
+                " in " + anniversaryGame.days + " day" + (anniversaryGame.days > 1 ? "s" : "") + "!"
+                icon = "assets/images/icons/calendar.svg"
+            } else if (anniversaryGame.type === "recent") {
+                message = Utils.cleanGameTitle(anniversaryGame.game.title) + " turned " + anniversaryGame.years +
+                " " + anniversaryGame.days + " day" + (anniversaryGame.days > 1 ? "s" : "") + " ago!"
+            }
+
             newNotifications.push({
                 type: "anniversary",
-                game: anniversaryGame,
+                game: anniversaryGame.game,
                 title: "🎂 Anniversary",
-                message: Utils.cleanGameTitle(anniversaryGame.title) + " was released " +
-                yearsAgo + " year" + (yearsAgo > 1 ? "s" : "") + " ago today!",
-                                  color: highlightColor,
-                                  icon: "assets/images/icons/cake.svg"
+                message: message,
+                color: highlightColor,
+                icon: icon
             })
         }
 
@@ -161,13 +175,26 @@ Item {
 
         var milestone = checkTimeMilestone()
         if (milestone) {
+            var title = "🏆 Milestone"
+            var icon = "assets/images/icons/milestone.svg"
+
+            if (milestone.type === "achieved") {
+                title = "🏆 Milestone Unlocked"
+            } else if (milestone.type === "progress") {
+                title = "🎯 Almost There"
+                icon = "assets/images/icons/playtime.svg"
+            } else if (milestone.type === "total") {
+                title = "⏱️ Playtime Stats"
+                icon = "assets/images/icons/stats.svg"
+            }
+
             newNotifications.push({
                 type: "milestone",
                 game: null,
-                title: "🏆 Milestone Unlocked",
+                title: title,
                 message: milestone.message,
                 color: milestoneColor,
-                icon: "assets/images/icons/milestone.svg"
+                icon: icon
             })
         }
 
@@ -210,17 +237,29 @@ Item {
             })
         }
 
-        var devStats = analyzeDeveloperStats()
-        if (devStats) {
+        var devStatsList = analyzeDeveloperStats()
+        if (devStatsList && devStatsList.length > 0) {
+            var devStats = devStatsList[currentDeveloperIndex % devStatsList.length]
+
+            var timeText = ""
+            if (devStats.totalTime > 3600) {
+                var hours = Math.floor(devStats.totalTime / 3600)
+                timeText = " • " + hours + "h played"
+            }
+
             newNotifications.push({
                 type: "developer",
                 game: null,
                 title: "Developer Fan",
-                message: "You've played " + devStats.count + " " + devStats.developer +
-                " game" + (devStats.count > 1 ? "s" : "") + " recently",
-                                  color: highlightColor,
-                                  icon: "assets/images/icons/developer.svg"
+                message: devStats.uniqueGames + " " + devStats.developer +
+                " game" + (devStats.uniqueGames > 1 ? "s" : "") +
+                " in the last 2 weeks" + timeText,
+                color: highlightColor,
+                icon: "assets/images/icons/developer.svg",
+                developerIndex: currentDeveloperIndex
             })
+
+            currentDeveloperIndex++
         }
 
         var marathonGame = findMarathonSession()
@@ -358,15 +397,53 @@ Item {
 
     function findGameAnniversary() {
         var today = new Date()
+        today.setHours(0, 0, 0, 0)
         var currentMonth = today.getMonth() + 1
         var currentDay = today.getDate()
+        var currentYear = today.getFullYear()
+
+        var exactMatch = []
+        var upcoming = []
+        var recent = []
 
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
-            if (game.releaseYear > 0 && game.releaseMonth === currentMonth &&
-                game.releaseDay === currentDay && game.releaseYear < today.getFullYear()) {
-                return game
+            if (game.releaseYear > 0 && game.releaseMonth > 0 &&
+                game.releaseDay > 0 && game.releaseYear < currentYear) {
+                var anniversaryDate = new Date(currentYear, game.releaseMonth - 1, game.releaseDay)
+                var daysDiff = Math.floor((anniversaryDate - today) / (1000 * 60 * 60 * 24))
+                var yearsAgo = currentYear - game.releaseYear
+
+                if (daysDiff === 0) {
+                    exactMatch.push({ game: game, years: yearsAgo, days: 0 })
                 }
+                else if (daysDiff > 0 && daysDiff <= 14) {
+                    upcoming.push({ game: game, years: yearsAgo, days: daysDiff })
+                }
+                else if (daysDiff < 0 && daysDiff >= -7) {
+                    recent.push({ game: game, years: yearsAgo, days: Math.abs(daysDiff) })
+                }
+                }
+        }
+
+        if (exactMatch.length > 0) {
+            exactMatch.sort(function(a, b) {
+                var scoreA = (a.years % 25 === 0) ? 4 : (a.years % 10 === 0) ? 3 : (a.years % 5 === 0) ? 2 : 1
+                var scoreB = (b.years % 25 === 0) ? 4 : (b.years % 10 === 0) ? 3 : (b.years % 5 === 0) ? 2 : 1
+                if (scoreB !== scoreA) return scoreB - scoreA
+                    return b.years - a.years
+            })
+            return { type: "today", game: exactMatch[0].game, years: exactMatch[0].years, days: 0 }
+        }
+
+        if (upcoming.length > 0) {
+            upcoming.sort(function(a, b) { return a.days - b.days })
+            return { type: "upcoming", game: upcoming[0].game, years: upcoming[0].years, days: upcoming[0].days }
+        }
+
+        if (recent.length > 0) {
+            recent.sort(function(a, b) { return a.days - b.days })
+            return { type: "recent", game: recent[0].game, years: recent[0].years, days: recent[0].days }
         }
 
         return null
@@ -436,7 +513,7 @@ Item {
             var collectionName = "library"
 
             if (randomGame.collections && randomGame.collections.count > 0) {
-                collectionName = randomGame.collections.get(0).name
+                collectionName = randomGame.collections.get(0).shortName
             }
 
             return {
@@ -456,17 +533,110 @@ Item {
         }
 
         var totalHours = Math.floor(totalTime / 3600)
-        var milestones = [50, 100, 200, 500, 1000, 2000]
+        var totalMinutes = Math.floor((totalTime % 3600) / 60)
+        var milestones = [
+            1,
+            5,
+            10,
+            25,
+            50,
+            60,
+            75,
+            85,
+            100,
+            150,
+            200,
+            300,
+            500,
+            750,
+            1000,
+            1500,
+            2000,
+            3000,
+            5000,
+            1000
+        ]
+
+        var currentMilestone = null
+        var nextMilestone = null
 
         for (var j = 0; j < milestones.length; j++) {
-            if (totalHours >= milestones[j] && totalHours < milestones[j] + 10) {
-                return {
-                    message: milestones[j] + " hours of total playtime reached!"
-                }
+            if (totalHours >= milestones[j]) {
+                currentMilestone = milestones[j]
+            } else {
+                nextMilestone = milestones[j]
+                break
             }
         }
 
-        return null
+        var recentWindow = 5
+        if (currentMilestone >= 1000) recentWindow = 10
+            else if (currentMilestone >= 100) recentWindow = 8
+                else if (currentMilestone < 10) recentWindow = 2
+
+                    if (currentMilestone && totalHours < currentMilestone + recentWindow) {
+                        var timeText = totalHours + "h"
+                        if (totalMinutes > 0) {
+                            timeText += " " + totalMinutes + "m"
+                        }
+
+                        var specialMessage = ""
+                        if (currentMilestone === 1) specialMessage = " - Your journey begins!"
+                            else if (currentMilestone === 100) specialMessage = " - Century club!"
+                                else if (currentMilestone === 500) specialMessage = " - Dedicated gamer!"
+                                    else if (currentMilestone === 1000) specialMessage = " - Gaming legend!"
+                                        else if (currentMilestone === 5000) specialMessage = " - Hall of fame!"
+
+                                            return {
+                                                type: "achieved",
+                                                message: timeText + " of total playtime reached!" + specialMessage,
+                                                hours: totalHours,
+                                                minutes: totalMinutes,
+                                                milestone: currentMilestone
+                                            }
+                    }
+
+                    if (nextMilestone) {
+                        var hoursToNext = nextMilestone - totalHours
+
+                        var showProgressThreshold = 10
+                        if (nextMilestone <= 10) showProgressThreshold = 3
+                            else if (nextMilestone <= 50) showProgressThreshold = 5
+                                else if (nextMilestone >= 1000) showProgressThreshold = 50
+                                    else if (nextMilestone >= 500) showProgressThreshold = 25
+
+                                        if (hoursToNext <= showProgressThreshold) {
+                                            var currentTimeText = totalHours + "h"
+                                            if (totalMinutes > 0) {
+                                                currentTimeText += " " + totalMinutes + "m"
+                                            }
+
+                                            return {
+                                                type: "progress",
+                                                message: currentTimeText + " played • " + hoursToNext + "h to " + nextMilestone + "h milestone!",
+                                                hours: totalHours,
+                                                minutes: totalMinutes,
+                                                nextMilestone: nextMilestone,
+                                                hoursToNext: hoursToNext
+                                            }
+                                        }
+                    }
+
+                    if (totalHours >= 5) {
+                        var timeText = totalHours + "h"
+                        if (totalMinutes > 0) {
+                            timeText += " " + totalMinutes + "m"
+                        }
+
+                        return {
+                            type: "total",
+                            message: timeText + " of total playtime accumulated!",
+                            hours: totalHours,
+                            minutes: totalMinutes
+                        }
+                    }
+
+                    return null
     }
 
     function analyzeFavoriteGenre() {
@@ -550,41 +720,54 @@ Item {
     }
 
     function analyzeDeveloperStats() {
-        var developerCount = {}
-        var oneMonthAgo = new Date()
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+        var developerStats = {}
+        var twoWeeksAgo = new Date()
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
             if (game.lastPlayed && game.lastPlayed.toString() !== "Invalid Date" &&
-                game.lastPlayed > oneMonthAgo && game.developerList &&
+                game.lastPlayed > twoWeeksAgo && game.developerList &&
                 game.developerList.length > 0) {
-                var dev = game.developerList[0]
-                if (!developerCount[dev]) {
-                    developerCount[dev] = 0
+
+                for (var j = 0; j < game.developerList.length; j++) {
+                    var dev = game.developerList[j]
+                    if (!developerStats[dev]) {
+                        developerStats[dev] = {
+                            uniqueGames: [],
+                            totalSessions: 0,
+                            totalTime: 0
+                        }
+                    }
+
+                    if (developerStats[dev].uniqueGames.indexOf(game.title) === -1) {
+                        developerStats[dev].uniqueGames.push(game.title)
+                    }
+                    developerStats[dev].totalSessions++
+                    developerStats[dev].totalTime += game.playTime || 0
                 }
-                developerCount[dev]++
                 }
         }
 
-        var topDev = null
-        var maxCount = 0
+        var qualifiedDevs = []
 
-        for (var devName in developerCount) {
-            if (developerCount[devName] > maxCount) {
-                maxCount = developerCount[devName]
-                topDev = devName
+        for (var devName in developerStats) {
+            var uniqueCount = developerStats[devName].uniqueGames.length
+            if (uniqueCount >= 2) {
+                qualifiedDevs.push({
+                    developer: devName,
+                    uniqueGames: uniqueCount,
+                    sessions: developerStats[devName].totalSessions,
+                    totalTime: developerStats[devName].totalTime
+                })
             }
         }
 
-        if (topDev && maxCount >= 3) {
-            return {
-                developer: topDev,
-                count: maxCount
-            }
-        }
+        qualifiedDevs.sort(function(a, b) {
+            return b.uniqueGames - a.uniqueGames
+        })
 
-        return null
+        return qualifiedDevs
     }
 
     function findMarathonSession() {
@@ -695,8 +878,24 @@ Item {
             "Let's beat your high score!",
             "Continue your adventure",
             "Unfinished business awaits",
-            "Jump back into the action"
-        ]
+            "Jump back into the action",
+            "Your next challenge is waiting",
+            "Time to make some progress",
+            "One more run won't hurt",
+            "Resume where you left off",
+            "New achievements await",
+            "The game isn't finished yet",
+            "Pick up the controller again",
+            "Your save file misses you",
+            "Another victory is within reach",
+            "Back to the game!",
+            "Continue the journey",
+            "The action calls you back",
+            "Level up and keep going",
+            "Your quest continues",
+            "Don't stop now"
+        ];
+
 
         if (game.playTime && game.playTime > 0) {
             return messages[Math.floor(Math.random() * messages.length)] +
