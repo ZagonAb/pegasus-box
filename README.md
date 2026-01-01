@@ -2,5 +2,5 @@
 
 - A theme for pegasus-frontend
 
-![screen](https://github.com/ZagonAb/pegasusbox/blob/aad410c4a6880fca09590a5cafefe8101d8723d8/.meta/screenshots/screen0.png)
+![screen](https://github.com/ZagonAb/pegasusbox/blob/91d5cdbdbf2e577ab4e1c92f1819aab4ef0e4496/.meta/screenshots/screen0.png)
 
