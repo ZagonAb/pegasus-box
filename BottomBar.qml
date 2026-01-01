@@ -250,10 +250,11 @@ Rectangle {
 
                 Column {
                     spacing: vpx(2)
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
 
                     Row {
                         spacing: vpx(8)
+                        Layout.alignment: Qt.AlignVCenter
 
                         Text {
                             id: timeText
@@ -262,7 +263,7 @@ Rectangle {
                             font.pixelSize: vpx(28)
                             font.bold: true
                             color: root.textColor
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.alignment: Qt.AlignVCenter
                         }
 
                         Image {

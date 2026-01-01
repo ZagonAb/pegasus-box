@@ -21,10 +21,10 @@ Item {
 
         sourceModel: {
             if (gamesFilter.globalSearchMode && gamesFilter.searchText !== "") {
-                console.log("GamesFilter: Using api.allGames (", api.allGames.count, "games )")
+                //console.log("GamesFilter: Using api.allGames (", api.allGames.count, "games )")
                 return api.allGames
             }
-            console.log("GamesFilter: Using collection model")
+            //console.log("GamesFilter: Using collection model")
             return gamesFilter.sourceModel
         }
 
@@ -128,7 +128,7 @@ Item {
     }
 
     function updateFilter(filterType) {
-        console.log("GamesFilter: Updating filter to:", filterType)
+        //console.log("GamesFilter: Updating filter to:", filterType)
         currentFilter = filterType
 
         if (filterType !== "All Games" || searchText === "") {
@@ -146,9 +146,9 @@ Item {
 
     function updateSearch(text, field) {
         var trimmedText = text.trim()
-        console.log("GamesFilter: Updating search")
-        console.log("  - Text:", trimmedText)
-        console.log("  - Field:", field)
+        //console.log("GamesFilter: Updating search")
+        //console.log("  - Text:", trimmedText)
+        //console.log("  - Field:", field)
 
         searchText = trimmedText
         searchField = field || "title"
@@ -156,24 +156,24 @@ Item {
 
         if (trimmedText !== "") {
             globalSearchMode = true
-            console.log("GamesFilter: Global search ENABLED")
-            console.log("  - Searching in", api.allGames.count, "total games")
-            console.log("  - Search field:", searchField)
+            //console.log("GamesFilter: Global search ENABLED")
+            //console.log("  - Searching in", api.allGames.count, "total games")
+            //console.log("  - Search field:", searchField)
         } else {
             globalSearchMode = false
             isSearching = false
-            console.log("GamesFilter: Global search DISABLED")
+            //console.log("GamesFilter: Global search DISABLED")
         }
 
         gamesProxyModel.invalidate()
         searchChanged()
 
         var resultCount = gamesProxyModel.count
-        console.log("GamesFilter: Found", resultCount, "results")
+        //console.log("GamesFilter: Found", resultCount, "results")
 
         if (resultCount > 0) {
             var maxLog = Math.min(resultCount, 5)
-            console.log("GamesFilter: Top results:")
+            //console.log("GamesFilter: Top results:")
             for (var i = 0; i < maxLog; i++) {
                 var game = gamesProxyModel.get(i)
                 if (game) {
@@ -185,11 +185,11 @@ Item {
                         case "sortBy": fieldValue = game.sortBy || "N/A"; break
                         default: fieldValue = game.title || "N/A"
                     }
-                    console.log("  " + (i+1) + ".", game.title, "(" + searchField + ":", fieldValue + ")")
+                    //console.log("  " + (i+1) + ".", game.title, "(" + searchField + ":", fieldValue + ")")
                 }
             }
             if (resultCount > 5) {
-                console.log("  ... and", (resultCount - 5), "more")
+                //console.log("  ... and", (resultCount - 5), "more")
             }
         }
 
@@ -259,12 +259,12 @@ Item {
             categories: false
         }
 
-        console.log("GamesFilter: Filter availability:", JSON.stringify(result))
+        //console.log("GamesFilter: Filter availability:", JSON.stringify(result))
         return result
     }
 
     function resetFilter() {
-        console.log("GamesFilter: Resetting filter to All Games")
+        //console.log("GamesFilter: Resetting filter to All Games")
         currentFilter = "All Games"
         searchText = ""
         searchField = "title"
@@ -292,19 +292,19 @@ Item {
     signal searchChanged()
 
     Component.onCompleted: {
-        console.log("=".repeat(60))
-        console.log("GamesFilter: Component loaded with field-specific search")
-        console.log("  - Total games in api.allGames:", api.allGames.count)
-        console.log("  - Total collections:", api.collections.count)
-        console.log("  - Available search fields: title, developer, genre, publisher, tags, sortBy")
-        console.log("  - Default search field: title")
-        console.log("=".repeat(60))
+        //console.log("=".repeat(60))
+        //console.log("GamesFilter: Component loaded with field-specific search")
+        //console.log("  - Total games in api.allGames:", api.allGames.count)
+        //console.log("  - Total collections:", api.collections.count)
+        //console.log("  - Available search fields: title, developer, genre, publisher, tags, sortBy")
+        //console.log("  - Default search field: title")
+        //console.log("=".repeat(60))
     }
 
     Connections {
         target: gamesProxyModel
         function onCountChanged() {
-            console.log("GamesFilter: Filtered count changed to", gamesProxyModel.count)
+            //console.log("GamesFilter: Filtered count changed to", gamesProxyModel.count)
         }
     }
 }

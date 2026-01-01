@@ -93,7 +93,7 @@ FocusScope {
         z: 2
 
         onFilterChanged: function(filterType) {
-            console.log("CollectionsPanel: Filter changed to:", filterType)
+            //console.log("CollectionsPanel: Filter changed to:", filterType)
 
             if (gamesGridView && typeof gamesGridView.updateFilter === "function") {
                 gamesGridView.updateFilter(filterType)
@@ -101,9 +101,9 @@ FocusScope {
         }
 
         onSearchRequested: function(text, field) {
-            console.log("CollectionsPanel: Search requested")
+            /*console.log("CollectionsPanel: Search requested")
             console.log("  - Text:", text)
-            console.log("  - Field:", field)
+            console.log("  - Field:", field)*/
 
             if (gamesGridView && typeof gamesGridView.updateSearch === "function") {
                 gamesGridView.updateSearch(text, field)
@@ -387,8 +387,8 @@ FocusScope {
     Connections {
         target: root
         function onCurrentCollectionChanged() {
-            console.log("CollectionsPanel: Current collection changed to",
-                        root.currentCollection ? root.currentCollection.name : "null")
+            /*console.log("CollectionsPanel: Current collection changed to",
+                        root.currentCollection ? root.currentCollection.name : "null")*/
 
             if (topSection && typeof topSection.onCollectionChanged === "function") {
                 topSection.onCollectionChanged(root.currentCollection)
@@ -403,7 +403,7 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        console.log("CollectionsPanel loaded with field-specific search")
+        //console.log("CollectionsPanel loaded with field-specific search")
 
         if (topSection && typeof topSection.updateFilterAvailability === "function") {
             Qt.callLater(function() {

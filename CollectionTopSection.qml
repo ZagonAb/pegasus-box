@@ -1012,7 +1012,7 @@ Item {
         canFilterFavorites = hasFavorites
         canFilterLastPlayed = hasLastPlayed
 
-        console.log("CollectionTopSection: Filters available - Favorites:", canFilterFavorites, "Last Played:", canFilterLastPlayed)
+        //console.log("CollectionTopSection: Filters available - Favorites:", canFilterFavorites, "Last Played:", canFilterLastPlayed)
     }
 
     function clearSearch() {
@@ -1036,7 +1036,7 @@ Item {
     }
 
     function onCollectionChanged(collection) {
-        console.log("CollectionTopSection: Collection changed to", collection ? collection.name : "null")
+        //console.log("CollectionTopSection: Collection changed to", collection ? collection.name : "null")
         updateFilterAvailability(collection)
 
         if (!isGlobalSearch) {
@@ -1068,9 +1068,9 @@ Item {
     }
 
     Component.onCompleted: {
-        console.log("CollectionTopSection: Loaded with enhanced search")
-        console.log("  - Total games available:", api.allGames.count)
-        console.log("  - Search fields available:", searchFieldOptions.length)
-        console.log("  - Default search field: title")
+        //console.log("CollectionTopSection: Loaded with enhanced search")
+        //console.log("  - Total games available:", api.allGames.count)
+        //console.log("  - Search fields available:", searchFieldOptions.length)
+        //console.log("  - Default search field: title")
     }
 }

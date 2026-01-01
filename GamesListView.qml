@@ -836,13 +836,13 @@ FocusScope {
     }
 
     onCurrentCollectionChanged: {
-        console.log("GamesListView: Collection changed")
+        //console.log("GamesListView: Collection changed")
         if (currentCollection && !gamesFilter.globalSearchMode) {
-            console.log("GamesListView: Resetting current index (not in global search)")
+            //console.log("GamesListView: Resetting current index (not in global search)")
             currentIndex = 0
             root.currentGameIndex = 0
         } else if (gamesFilter.globalSearchMode) {
-            console.log("GamesListView: Collection changed but maintaining global search")
+            //console.log("GamesListView: Collection changed but maintaining global search")
         }
     }
 
@@ -865,12 +865,12 @@ FocusScope {
     }
 
     function resetAllFilters() {
-        console.log("GamesListView: Resetting all filters")
+        //console.log("GamesListView: Resetting all filters")
         if (sharedFilter) sharedFilter.resetFilter()
     }
 
     function updateFilter(filterType) {
-        console.log("GamesListView: Updating filter to", filterType)
+        //console.log("GamesListView: Updating filter to", filterType)
         if (sharedFilter) sharedFilter.updateFilter(filterType)
 
             currentIndex = 0
@@ -886,9 +886,9 @@ FocusScope {
     }
 
     function updateSearch(searchText, searchField) {
-        console.log("GamesListView: Updating search")
-        console.log("  - Text:", searchText)
-        console.log("  - Field:", searchField)
+        //console.log("GamesListView: Updating search")
+        //console.log("  - Text:", searchText)
+        //console.log("  - Field:", searchField)
 
         if (sharedFilter) sharedFilter.updateSearch(searchText, searchField)
 
@@ -897,17 +897,17 @@ FocusScope {
 
             if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
                 root.currentGame = gamesFilter.filteredModel.get(0)
-                console.log("GamesListView: First result:", root.currentGame.title)
+                //console.log("GamesListView: First result:", root.currentGame.title)
             } else {
                 root.currentGame = null
-                console.log("GamesListView: No results")
+                //console.log("GamesListView: No results")
             }
 
             ensureCurrentVisible()
     }
 
     function resetFilter() {
-        console.log("GamesListView: Resetting filter")
+        //console.log("GamesListView: Resetting filter")
         if (sharedFilter) sharedFilter.resetFilter()
 
             currentIndex = 0
@@ -949,11 +949,11 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        console.log("=".repeat(60))
-        console.log("GamesListView: Loaded with SHARED filter")
-        console.log("  - Total games available:", api.allGames.count)
-        console.log("  - List layout (simplified)")
-        console.log("  - Using centralized GamesFilter from theme.qml")
-        console.log("=".repeat(60))
+        //console.log("=".repeat(60))
+        //console.log("GamesListView: Loaded with SHARED filter")
+        //console.log("  - Total games available:", api.allGames.count)
+        //console.log("  - List layout (simplified)")
+        //console.log("  - Using centralized GamesFilter from theme.qml")
+        //console.log("=".repeat(60))
     }
 }

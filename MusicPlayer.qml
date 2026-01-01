@@ -23,21 +23,21 @@ Item {
 
         onStatusChanged: {
             if (status === Audio.EndOfMedia) {
-                console.log("Track ended, playing next track")
+                //console.log("Track ended, playing next track")
                 nextTrack()
             } else if (status === Audio.Loaded) {
-                console.log("Track loaded:", source)
+                //console.log("Track loaded:", source)
             } else if (status === Audio.Loading) {
-                console.log("Loading track...")
+                //console.log("Loading track...")
             }
         }
 
         onError: {
-            console.log("Audio error:", errorString)
+            //console.log("Audio error:", errorString)
         }
 
         onPlaybackStateChanged: {
-            console.log("Playback state changed:", playbackState)
+            //console.log("Playback state changed:", playbackState)
             if (playbackState === Audio.PlayingState) {
                 isPlaying = true
             } else if (playbackState === Audio.PausedState || playbackState === Audio.StoppedState) {
@@ -67,13 +67,13 @@ Item {
             isMuted = savedMuted
         }
 
-        console.log("Music Player: Loaded volume settings - Volume:", volume, "Muted:", isMuted)
+        //console.log("Music Player: Loaded volume settings - Volume:", volume, "Muted:", isMuted)
     }
 
     function saveVolumeSettings() {
         api.memory.set('musicPlayerVolume', volume)
         api.memory.set('musicPlayerMuted', isMuted)
-        console.log("Music Player: Saved volume settings - Volume:", volume, "Muted:", isMuted)
+        //console.log("Music Player: Saved volume settings - Volume:", volume, "Muted:", isMuted)
     }
 
     function loadMusicList() {
@@ -99,7 +99,7 @@ Item {
         if (musicTracks.length > 0) {
             currentTrackIndex = 0
             audioPlayer.source = musicTracks[currentTrackIndex]
-            console.log("Music Player initialized with", musicTracks.length, "tracks")
+            //console.log("Music Player initialized with", musicTracks.length, "tracks")
         }
     }
 
@@ -108,10 +108,10 @@ Item {
 
             if (isPlaying) {
                 audioPlayer.pause()
-                console.log("Music paused")
+                //console.log("Music paused")
             } else {
                 audioPlayer.play()
-                console.log("Music playing")
+                //console.log("Music playing")
             }
     }
 
@@ -124,7 +124,7 @@ Item {
             currentTrackIndex = (currentTrackIndex + 1) % musicTracks.length
             audioPlayer.source = musicTracks[currentTrackIndex]
 
-            //console.log("Next track:", getCurrentTrackName())
+            ////console.log("Next track:", getCurrentTrackName())
 
             if (wasPlaying) {
                 nextTrackTimer.start()
@@ -144,7 +144,7 @@ Item {
 
             audioPlayer.source = musicTracks[currentTrackIndex]
 
-            //console.log("Previous track:", getCurrentTrackName())
+            ////console.log("Previous track:", getCurrentTrackName())
 
             if (wasPlaying) {
                 prevTrackTimer.start()
@@ -160,7 +160,7 @@ Item {
             currentTrackIndex = index
             audioPlayer.source = musicTracks[currentTrackIndex]
 
-            //console.log("Selected track:", getCurrentTrackName())
+            ////console.log("Selected track:", getCurrentTrackName())
 
             if (wasPlaying) {
                 selectTrackTimer.start()
@@ -200,7 +200,7 @@ Item {
     function toggleMute() {
         isMuted = !isMuted
         saveVolumeSettings()
-        console.log("Mute toggled:", isMuted)
+        //console.log("Mute toggled:", isMuted)
     }
 
     function getCurrentTrackName() {

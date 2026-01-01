@@ -1016,7 +1016,7 @@ Item {
                                             if (currentNotification.game) {
                                                 return recentActivityPanel.getSystemImagePath(currentNotification.game)
                                             } else if (currentNotification.type === "collection_progress" && currentNotification.collectionShortName) {
-                                                console.log("Collection Progress - shortName:", currentNotification.collectionShortName)
+                                                //console.log("Collection Progress - shortName:", currentNotification.collectionShortName)
                                                 return recentActivityPanel.getSystemImagePathFromShortName(currentNotification.collectionShortName)
                                             }
                                             return ""
@@ -1027,7 +1027,7 @@ Item {
                                         visible: status === Image.Ready && source !== ""
 
                                         onStatusChanged: {
-                                            console.log("SystemImage status:", status, "source:", source)
+                                            //console.log("SystemImage status:", status, "source:", source)
                                         }
                                     }
 
