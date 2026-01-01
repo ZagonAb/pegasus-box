@@ -19,7 +19,8 @@
 1. **Copy your MP3 file** to the music folder: `assets/music`
 2. **Edit the MusicPlayer.qml file**
 3. **Locate the tracks list**: `function loadMusicList()`
-4. **Restart pegasus frontend**:
+4. **Add your new track**: `"assets/music/your music.mp3"`
+5. **Restart pegasus frontend:**
 
 ## Installation
 
