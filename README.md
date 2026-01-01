@@ -2,7 +2,7 @@
   PEGASUS BOX
   <img
     src="https://github.com/ZagonAb/pegasusbox/blob/8a8903abc14ca0b32c40309b0220b445f502c722/assets/images/icons/pegasusbox.svg"
-    width="28"
+    width="32"
     style="vertical-align: middle; margin-left: 8px;"
   />
 </h1>
