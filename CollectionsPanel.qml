@@ -330,10 +330,6 @@ FocusScope {
             event.accepted = true
             nextItem()
         }
-        else if (api.keys.isFilters(event)) {
-            event.accepted = true
-            topSection.toggleDropdown()
-        }
     }
 
     Binding {
