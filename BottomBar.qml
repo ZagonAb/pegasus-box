@@ -243,6 +243,24 @@ Rectangle {
                     }
                 }
 
+                function updateBadgeCount() {
+                    var component = Qt.createComponent("RecentActivityPanel.qml")
+                    if (component.status === Component.Ready) {
+                        var tempPanel = component.createObject(notificationBadge, {
+                            gameModel: api.allGames,
+                            visible: false
+                        })
+
+                        if (tempPanel) {
+                            tempPanel.updateNotifications()
+                            var allNotifs = tempPanel.getAllNotifications()
+                            count = allNotifs.length
+                            visible = count > 0
+                            tempPanel.destroy()
+                        }
+                    }
+                }
+
                 Rectangle {
                     id: notificationBadge
                     visible: false
@@ -267,19 +285,6 @@ Rectangle {
                         color: "white"
                     }
 
-                    Timer {
-                        interval: 5000
-                        running: true
-                        repeat: true
-                        onTriggered: {
-                            updateBadgeCount()
-                        }
-                    }
-
-                    Component.onCompleted: {
-                        updateBadgeCount()
-                    }
-
                     function updateBadgeCount() {
                         var component = Qt.createComponent("RecentActivityPanel.qml")
                         if (component.status === Component.Ready) {
@@ -296,6 +301,19 @@ Rectangle {
                                 tempPanel.destroy()
                             }
                         }
+                    }
+
+                    Timer {
+                        interval: 5000
+                        running: true
+                        repeat: true
+                        onTriggered: {
+                            notificationBadge.updateBadgeCount()
+                        }
+                    }
+
+                    Component.onCompleted: {
+                        notificationBadge.updateBadgeCount()
                     }
                 }
 

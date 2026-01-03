@@ -209,6 +209,9 @@ Rectangle {
             height: vpx(80)
             color: {
                 var nc = model.notificationColor
+                if (!nc) {
+                    return Qt.rgba(0.1, 0.5, 0.8, 0.05)
+                }
                 if (typeof nc === "string") {
                     return Qt.rgba(0.1, 0.5, 0.8, 0.05)
                 }
@@ -217,6 +220,9 @@ Rectangle {
             border.width: vpx(1)
             border.color: {
                 var nc = model.notificationColor
+                if (!nc) {
+                    return Qt.rgba(0.1, 0.5, 0.8, 0.2)
+                }
                 if (typeof nc === "string") {
                     return Qt.rgba(0.1, 0.5, 0.8, 0.2)
                 }
@@ -226,6 +232,9 @@ Rectangle {
 
             property color itemColor: {
                 var nc = model.notificationColor
+                if (!nc) {
+                    return notificationDropdown.accentColor
+                }
                 if (typeof nc === "string") {
                     return notificationDropdown.accentColor
                 }
@@ -341,6 +350,10 @@ Rectangle {
 
                 onEntered: {
                     var nc = model.notificationColor
+                    if (!nc) {
+                        parent.color = Qt.rgba(0.1, 0.5, 0.8, 0.1)
+                        return
+                    }
                     if (typeof nc === "string") {
                         parent.color = Qt.rgba(0.1, 0.5, 0.8, 0.1)
                     } else {
@@ -350,6 +363,10 @@ Rectangle {
 
                 onExited: {
                     var nc = model.notificationColor
+                    if (!nc) {
+                        parent.color = Qt.rgba(0.1, 0.5, 0.8, 0.05)
+                        return
+                    }
                     if (typeof nc === "string") {
                         parent.color = Qt.rgba(0.1, 0.5, 0.8, 0.05)
                     } else {

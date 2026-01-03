@@ -1117,15 +1117,10 @@ Item {
                         Row {
                             Layout.fillWidth: true
                             spacing: vpx(4)
-                            visible: {
-                                if (isFloatingMode) {
-                                    return notifications.length > 1
-                                }
-                                return notifications.length > 1
-                            }
+                            visible: notifications.length > 1
 
                             Repeater {
-                                model: isFloatingMode ? notifications.length : notifications.length
+                                model: notifications.length
 
                                 Rectangle {
                                     width: vpx(16)
