@@ -15,6 +15,7 @@ FocusScope {
     property string focusedPanel: "collections"
     property bool detailsExpanded: false
     property string gamesViewMode: "grid"
+    property real zoomLevel: 1.0
     property color backgroundColor: "#0a0a0a"
     property color panelColor: "#1a1a1a"
     property color accentColor: "#0078d7"
@@ -40,22 +41,15 @@ FocusScope {
     }
 
     property var currentFilteredGame: {
-        /*console.log("=== Updating currentFilteredGame ===")
-        console.log("Global search mode:", sharedGamesFilter.globalSearchMode)
-        console.log("Current game index:", currentGameIndex)*/
-
         if (sharedGamesFilter && sharedGamesFilter.filteredModel) {
             if (currentGameIndex >= 0 && currentGameIndex < sharedGamesFilter.filteredModel.count) {
                 var game = sharedGamesFilter.filteredModel.get(currentGameIndex)
                 if (game) {
-                    /*console.log("Current filtered game set to:", game.title)
-                    console.log("Has launch method?", typeof game.launch === "function")*/
                     return game
                 }
             }
         }
 
-        //console.log("No filtered game available")
         return null
     }
 
@@ -65,13 +59,8 @@ FocusScope {
             var game = sharedGamesFilter.filteredModel.get(currentGameIndex);
 
         if (game && game.collections) {
-            /*console.log("=== Current Filtered Game Info ===");
-            console.log("Title:", game.title);
-            console.log("ID:", game.id);
-            console.log("Collections count:", game.collections.count);*/
             for (var i = 0; i < game.collections.count; i++) {
                 var col = game.collections.get(i);
-                //console.log("  Collection", i + 1, ":", col.name);
             }
         }
 
@@ -88,7 +77,6 @@ FocusScope {
         globalSearchMode: false
 
         onSearchCompleted: {
-            //console.log("SharedGamesFilter: Search completed")
         }
     }
 
@@ -97,15 +85,10 @@ FocusScope {
         interval: 700
         repeat: false
         onTriggered: {
-            //console.log("=== Launch Timer Triggered ===");
-
             var gameToLaunch = currentFilteredGameExact || currentGame;
             if (!gameToLaunch) {
-                //console.error("No game to launch");
                 return;
             }
-
-            //console.log("Launching game via timer:", gameToLaunch.title);
 
             api.memory.set('lastCollectionIndex', currentCollectionIndex);
             api.memory.set('lastGameTitle', gameToLaunch.title);
@@ -113,7 +96,6 @@ FocusScope {
             var success = Utils.launchExactGame(gameToLaunch, api);
 
             if (!success) {
-                //console.error("Failed to launch game via timer");
             }
         }
     }
@@ -172,9 +154,6 @@ FocusScope {
 
                     sharedFilter: sharedGamesFilter
 
-                    columns: detailsExpanded ? 3 : 4
-                    rows: 3
-
                     Behavior on Layout.preferredWidth {
                         NumberAnimation {
                             duration: 400
@@ -194,7 +173,6 @@ FocusScope {
                     }
 
                     onSwitchToListView: {
-                        //console.log("Switching to List View")
                         root.gamesViewMode = "list"
                         api.memory.set('gamesViewMode', "list")
                         gamesListView.currentIndex = gamesGridView.currentIndex
@@ -231,7 +209,6 @@ FocusScope {
                     }
 
                     onSwitchToGridView: {
-                        //console.log("Switching to Grid View")
                         root.gamesViewMode = "grid"
                         api.memory.set('gamesViewMode', "grid")
                         gamesGridView.currentIndex = gamesListView.currentIndex
@@ -253,7 +230,6 @@ FocusScope {
 
                     onExpansionChanged: {
                         root.detailsExpanded = expanded
-                        //console.log("Details panel expanded:", expanded)
 
                         if (expanded) {
                             root.focusedPanel = "details"
@@ -319,7 +295,28 @@ FocusScope {
     }
 
     Keys.onPressed: {
-        if (api.keys.isCancel(event)) {
+        if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+            event.accepted = true
+            if (focusedPanel === "games") {
+                zoomLevel = Math.min(2.0, zoomLevel + 0.1)
+                api.memory.set('zoomLevel', zoomLevel)
+            }
+        }
+        else if (event.key === Qt.Key_Minus) {
+            event.accepted = true
+            if (focusedPanel === "games") {
+                zoomLevel = Math.max(0.5, zoomLevel - 0.1)
+                api.memory.set('zoomLevel', zoomLevel)
+            }
+        }
+        else if (event.key === Qt.Key_0) {
+            event.accepted = true
+            if (focusedPanel === "games") {
+                zoomLevel = 1.0
+                api.memory.set('zoomLevel', zoomLevel)
+            }
+        }
+        else if (api.keys.isCancel(event)) {
             event.accepted = true
 
             if (detailsExpanded) {
@@ -404,13 +401,14 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        /*console.log("Theme loaded, checking utils.js functions");
-        console.log("Utils.launchExactGame available?", typeof Utils.launchExactGame === "function");
-        console.log("Utils.getNameCollecForGame available?", typeof Utils.getNameCollecForGame === "function");*/
-
         var savedViewMode = api.memory.get('gamesViewMode')
         if (savedViewMode === "list" || savedViewMode === "grid") {
             root.gamesViewMode = savedViewMode
+        }
+
+        var savedZoomLevel = api.memory.get('zoomLevel')
+        if (savedZoomLevel !== undefined && savedZoomLevel >= 0.5 && savedZoomLevel <= 2.0) {
+            root.zoomLevel = savedZoomLevel
         }
 
         root.restoreState()
@@ -418,6 +416,7 @@ FocusScope {
 
     Component.onDestruction: {
         root.saveState("component_destruction")
+        api.memory.set('zoomLevel', zoomLevel)
     }
 
     function selectCollection(index) {
@@ -461,34 +460,26 @@ FocusScope {
     }
 
     function launchCurrentGame() {
-        //console.log("=== launchCurrentGame() - Starting timer ===");
         launchTimer.restart();
     }
 
     function findAndLaunchInAllCollections(game) {
-        //console.log("Using improved search for:", game.title);
         Utils.launchExactGame(game, api);
     }
 
     function findAndLaunchInCurrentCollection(game) {
-        //console.log("Searching in current collection for:", game.title);
         Utils.launchExactGame(game, api);
     }
 
     function launchGameFromCollection(game) {
         if (!game || !currentCollection) {
-            //console.error("Cannot launch: no game or no collection")
             return
         }
-
-        //console.log("Attempting to find game in collection:", game.title)
 
         if (game.id) {
             for (var i = 0; i < currentCollection.games.count; i++) {
                 var collectionGame = currentCollection.games.get(i)
                 if (collectionGame && collectionGame.id === game.id) {
-                    //console.log("Found game by ID, launching...")
-                    //collectionGame.launch()
                     return
                 }
             }
@@ -498,7 +489,6 @@ FocusScope {
             for (var j = 0; j < currentCollection.games.count; j++) {
                 var collectionGame2 = currentCollection.games.get(j)
                 if (collectionGame2 && collectionGame2.title === game.title) {
-                    //console.log("Found game by title, launching...")
                     collectionGame2.launch()
                     return
                 }
@@ -506,18 +496,16 @@ FocusScope {
         }
 
         if (currentCollection.games.count > 0) {
-            //console.log("Could not find exact match, launching first game in collection")
             currentCollection.games.get(0).launch()
             return
         }
-
-        //console.error("Could not find any game to launch")
     }
 
     function saveState(reason) {
         api.memory.set('lastCollectionIndex', currentCollectionIndex)
         api.memory.set('lastGameIndex', currentGameIndex)
         api.memory.set('gamesViewMode', gamesViewMode)
+        api.memory.set('zoomLevel', zoomLevel)
 
         if (currentCollection) {
             api.memory.set('lastCollectionName', currentCollection.name)

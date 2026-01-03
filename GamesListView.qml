@@ -13,6 +13,14 @@ FocusScope {
     property var sharedFilter: null
     property alias gamesFilter: filterAlias
 
+    property int itemHeight: {
+        if (root.zoomLevel <= 0.5) return vpx(50)
+            if (root.zoomLevel <= 0.8) return vpx(65)
+                if (root.zoomLevel <= 1.1) return vpx(85)
+                    if (root.zoomLevel <= 1.5) return vpx(110)
+                        return vpx(140)
+    }
+
     QtObject {
         id: filterAlias
         property var filteredModel: sharedFilter ? sharedFilter.filteredModel : null
@@ -482,9 +490,13 @@ FocusScope {
 
             delegate: Item {
                 width: gamesList.width
-                height: vpx(80)
+                height: gamesListView.itemHeight
 
                 readonly property bool isCurrent: index === gamesList.currentIndex
+
+                Behavior on height {
+                    NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                }
 
                 Rectangle {
                     id: listItem
@@ -535,8 +547,8 @@ FocusScope {
 
                         Rectangle {
                             id: gameImageContainer
-                            width: vpx(60)
-                            height: parent.height
+                            width: Math.min(parent.height * 0.8, vpx(80))
+                            height: parent.height - vpx(4)
                             radius: vpx(4)
                             color: "#222"
                             anchors.verticalCenter: parent.verticalCenter
@@ -560,7 +572,7 @@ FocusScope {
                                         text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
                                         color: textColor
                                         font.family: condensedFontFamily
-                                        font.pixelSize: vpx(18)
+                                        font.pixelSize: Math.min(vpx(24), parent.height * 0.4)
                                         font.bold: true
                                     }
                                 }
@@ -574,26 +586,47 @@ FocusScope {
                             text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
                             color: isCurrent ? accentColor : textColor
                             font.family: fontFamily
-                            font.pixelSize: vpx(16)
+                            font.pixelSize: {
+                                var baseSize = 18
+                                var ratio = gamesListView.itemHeight / 140
+
+                                if (ratio >= 1.0) return vpx(baseSize * 1.2)
+                                    if (ratio >= 0.79) return vpx(baseSize * 1.1)
+                                        if (ratio >= 0.61) return vpx(baseSize)
+                                            if (ratio >= 0.46) return vpx(baseSize * 0.9)
+                                                return vpx(baseSize * 0.8)
+                            }
                             font.bold: true
                             elide: Text.ElideRight
 
                             Behavior on color {
                                 ColorAnimation { duration: 150 }
                             }
+
+                            Behavior on font.pixelSize {
+                                NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                            }
                         }
 
                         Row {
                             id: itemIco
                             height: parent.height
-                            spacing: vpx(12)
+                            spacing: {
+                                if (gamesListView.itemHeight >= 110) return vpx(15)
+                                    if (gamesListView.itemHeight >= 85) return vpx(12)
+                                        if (gamesListView.itemHeight >= 65) return vpx(10)
+                                            return vpx(8)
+                            }
                             visible: isCurrent
                             anchors.verticalCenter: parent.verticalCenter
 
                             Item {
                                 id: historyItem
-                                width: vpx(28)
-                                height: vpx(28)
+                                width: {
+                                    var baseSize = Math.min(vpx(32), gamesListView.itemHeight * 0.4)
+                                    return Math.max(vpx(20), baseSize)
+                                }
+                                height: width
                                 visible: modelData.lastPlayed && modelData.lastPlayed.toString() !== "Invalid Date"
                                 anchors.verticalCenter: parent.verticalCenter
 
@@ -608,8 +641,11 @@ FocusScope {
 
                             Item {
                                 id: favoriteItem
-                                width: vpx(28)
-                                height: vpx(28)
+                                width: {
+                                    var baseSize = Math.min(vpx(32), gamesListView.itemHeight * 0.4)
+                                    return Math.max(vpx(20), baseSize)
+                                }
+                                height: width
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
@@ -661,8 +697,11 @@ FocusScope {
 
                             Item {
                                 id: playItem
-                                width: vpx(28)
-                                height: vpx(28)
+                                width: {
+                                    var baseSize = Math.min(vpx(32), gamesListView.itemHeight * 0.4)
+                                    return Math.max(vpx(20), baseSize)
+                                }
+                                height: width
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
@@ -730,26 +769,6 @@ FocusScope {
                         }
                     }
                 }
-
-                MouseArea {
-                    id: gameMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    z: -1
-
-                    onClicked: {
-                        root.selectGameWithMouse(index)
-                        gamesList.collapseDetailsPanel()
-                    }
-
-                    onDoubleClicked: {
-                        if (root.currentGame) {
-                            root.launchCurrentGame()
-                        }
-                    }
-                }
-
-
             }
         }
 
@@ -836,13 +855,9 @@ FocusScope {
     }
 
     onCurrentCollectionChanged: {
-        //console.log("GamesListView: Collection changed")
         if (currentCollection && !gamesFilter.globalSearchMode) {
-            //console.log("GamesListView: Resetting current index (not in global search)")
             currentIndex = 0
             root.currentGameIndex = 0
-        } else if (gamesFilter.globalSearchMode) {
-            //console.log("GamesListView: Collection changed but maintaining global search")
         }
     }
 
@@ -865,12 +880,10 @@ FocusScope {
     }
 
     function resetAllFilters() {
-        //console.log("GamesListView: Resetting all filters")
         if (sharedFilter) sharedFilter.resetFilter()
     }
 
     function updateFilter(filterType) {
-        //console.log("GamesListView: Updating filter to", filterType)
         if (sharedFilter) sharedFilter.updateFilter(filterType)
 
             currentIndex = 0
@@ -886,10 +899,6 @@ FocusScope {
     }
 
     function updateSearch(searchText, searchField) {
-        //console.log("GamesListView: Updating search")
-        //console.log("  - Text:", searchText)
-        //console.log("  - Field:", searchField)
-
         if (sharedFilter) sharedFilter.updateSearch(searchText, searchField)
 
             currentIndex = 0
@@ -897,17 +906,14 @@ FocusScope {
 
             if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
                 root.currentGame = gamesFilter.filteredModel.get(0)
-                //console.log("GamesListView: First result:", root.currentGame.title)
             } else {
                 root.currentGame = null
-                //console.log("GamesListView: No results")
             }
 
             ensureCurrentVisible()
     }
 
     function resetFilter() {
-        //console.log("GamesListView: Resetting filter")
         if (sharedFilter) sharedFilter.resetFilter()
 
             currentIndex = 0
@@ -925,7 +931,7 @@ FocusScope {
     function nextPage() {
         if (!gamesFilter.filteredModel) return
 
-            var itemsPerPage = Math.floor(gamesList.height / vpx(80))
+            var itemsPerPage = Math.floor(gamesList.height / itemHeight)
             var nextIndex = currentIndex + itemsPerPage
             if (nextIndex < gamesFilter.filteredModel.count) {
                 currentIndex = nextIndex
@@ -937,7 +943,7 @@ FocusScope {
     }
 
     function previousPage() {
-        var itemsPerPage = Math.floor(gamesList.height / vpx(80))
+        var itemsPerPage = Math.floor(gamesList.height / itemHeight)
         var prevIndex = currentIndex - itemsPerPage
         if (prevIndex >= 0) {
             currentIndex = prevIndex
@@ -949,11 +955,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        //console.log("=".repeat(60))
-        //console.log("GamesListView: Loaded with SHARED filter")
-        //console.log("  - Total games available:", api.allGames.count)
-        //console.log("  - List layout (simplified)")
-        //console.log("  - Using centralized GamesFilter from theme.qml")
-        //console.log("=".repeat(60))
+        //console.log("GamesListView loaded with dynamic zoom support")
     }
 }

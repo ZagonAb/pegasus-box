@@ -9,8 +9,28 @@ FocusScope {
     id: gamesGridView
 
     property int currentIndex: 0
-    property int columns: 4
-    property int rows: 3
+
+    property int columns: {
+        if (root.detailsExpanded) {
+            if (root.zoomLevel <= 0.5) return 5
+                if (root.zoomLevel <= 0.8) return 4
+                    if (root.zoomLevel <= 1.5) return 3
+                        return 2
+        } else {
+            if (root.zoomLevel <= 0.5) return 6
+                if (root.zoomLevel <= 0.8) return 5
+                    if (root.zoomLevel <= 1.1) return 4
+                        if (root.zoomLevel <= 1.5) return 3
+                            return 2
+        }
+    }
+
+    property int rows: {
+        if (root.zoomLevel <= 0.5) return 4
+            if (root.zoomLevel <= 1.1) return 3
+                return 2
+    }
+
     property var currentCollection: root.currentCollection
     property var sharedFilter: null
     property alias gamesFilter: filterAlias
@@ -323,6 +343,14 @@ FocusScope {
 
                 opacity: gamesFilter.isSearching ? 0.3 : 1.0
 
+                Behavior on cellWidth {
+                    NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                }
+
+                Behavior on cellHeight {
+                    NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                }
+
                 Behavior on opacity {
                     NumberAnimation { duration: 200 }
                 }
@@ -497,7 +525,7 @@ FocusScope {
                     Rectangle {
                         id: gameItem
                         width: parent.width - vpx(10)
-                        height: parent.height - vpx(10)
+                        height: parent.height - vpx(15)
                         anchors.centerIn: parent
 
                         color: {
@@ -522,185 +550,247 @@ FocusScope {
                             ColorAnimation { duration: 150 }
                         }
 
-                        Rectangle {
-                            id: gameImageContainer
-                            width: parent.width
-                            height: width * 0.75
-                            radius: vpx(4)
-                            color: "#222"
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: vpx(4)
 
-                            Image {
-                                id: gameImage
-                                anchors.fill: parent
-                                anchors.margins: vpx(2)
-                                source: modelData.assets.boxFront || modelData.assets.logo || ""
-                                fillMode: Image.PreserveAspectFit
-                                asynchronous: true
-                                cache: true
+                            spacing: {
+                                if (root.detailsExpanded) {
+                                    if (gamesGridView.columns <= 2) return vpx(20)
+                                        if (gamesGridView.columns <= 3) return vpx(8)
+                                            if (gamesGridView.columns <= 4) return vpx(6)
+                                                return vpx(4)
+                                }
 
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: "#333"
-                                    visible: gameImage.status !== Image.Ready
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
-                                        color: textColor
-                                        font.family: condensedFontFamily
-                                        font.pixelSize: vpx(32)
-                                        font.bold: true
-                                    }
+                                else {
+                                    if (gamesGridView.columns <= 2) return vpx(12)
+                                        if (gamesGridView.columns <= 3) return vpx(10)
+                                            if (gamesGridView.columns <= 4) return vpx(8)
+                                                if (gamesGridView.columns <= 5) return vpx(6)
+                                                    return vpx(4)
                                 }
                             }
-                        }
 
-                        Text {
-                            id: gameTitle
-                            anchors {
-                                top: gameImageContainer.bottom
-                                left: parent.left
-                                right: parent.right
-                                topMargin: vpx(8)
-                            }
-                            text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
-                            color: isCurrent ? "#ffffff" : textColor
-                            font.family: fontFamily
-                            font.pixelSize: vpx(14)
-                            elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignHCenter
-                            maximumLineCount: 2
-                            wrapMode: Text.WordWrap
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
-                            }
-                        }
-
-                        Row {
-                            id: itemIco
-                            height: vpx(30)
-                            spacing: vpx(10)
-                            visible: isCurrent
-                            anchors {
-                                bottom: parent.bottom
-                                bottomMargin: vpx(2)
-                                horizontalCenter: parent.horizontalCenter
-                            }
-
-                            Item {
-                                id: historyItem
-                                width: vpx(26)
-                                height: vpx(26)
-                                visible: modelData.lastPlayed && modelData.lastPlayed.toString() !== "Invalid Date"
+                            Rectangle {
+                                id: gameImageContainer
+                                width: parent.width
+                                height: width * 0.75
+                                radius: vpx(4)
+                                color: "#222"
 
                                 Image {
+                                    id: gameImage
                                     anchors.fill: parent
-                                    source: "assets/images/icons/history.svg"
+                                    anchors.margins: vpx(2)
+                                    source: modelData.assets.boxFront || modelData.assets.logo || ""
                                     fillMode: Image.PreserveAspectFit
-                                    mipmap: true
-                                    opacity: 0.8
-                                }
-                            }
+                                    asynchronous: true
+                                    cache: true
 
-                            Item {
-                                id: favoriteItem
-                                width: vpx(26)
-                                height: vpx(26)
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: "#333"
+                                        visible: gameImage.status !== Image.Ready
 
-                                Image {
-                                    id: favoriteIcon
-                                    anchors.fill: parent
-                                    source: modelData.favorite ?
-                                    "assets/images/icons/favorite-yes.svg" :
-                                    "assets/images/icons/favorite-no.svg"
-                                    fillMode: Image.PreserveAspectFit
-                                    mipmap: true
-                                    opacity: favoriteMouseArea.containsMouse ? 1.0 : 0.8
-
-                                    Behavior on opacity {
-                                        NumberAnimation { duration: 150 }
-                                    }
-
-                                    Behavior on scale {
-                                        NumberAnimation { duration: 100 }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: favoriteMouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-
-                                    onClicked: {
-                                        modelData.favorite = !modelData.favorite
-                                        favoriteIcon.scale = 0.8
-                                        scaleBackTimer.restart()
-                                    }
-
-                                    onPressed: {
-                                        favoriteIcon.scale = 0.9
-                                    }
-
-                                    onReleased: {
-                                        favoriteIcon.scale = 1.0
-                                    }
-
-                                    Timer {
-                                        id: scaleBackTimer
-                                        interval: 100
-                                        onTriggered: favoriteIcon.scale = 1.0
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.title ? modelData.title.substring(0, 2).toUpperCase() : "??"
+                                            color: textColor
+                                            font.family: condensedFontFamily
+                                            font.pixelSize: vpx(32)
+                                            font.bold: true
+                                        }
                                     }
                                 }
                             }
 
-                            Item {
-                                id: playItem
-                                width: vpx(26)
-                                height: vpx(26)
+                            Text {
+                                id: gameTitle
+                                width: parent.width
+                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                                color: isCurrent ? "#ffffff" : textColor
+                                font.family: fontFamily
+                                font.pixelSize: {
+                                    var baseSize = 14
 
-                                Image {
-                                    id: playIcon
-                                    anchors.fill: parent
-                                    source: "assets/images/icons/play.svg"
-                                    fillMode: Image.PreserveAspectFit
-                                    mipmap: true
-                                    opacity: playMouseArea.containsMouse ? 1.0 : 0.8
-
-                                    Behavior on opacity {
-                                        NumberAnimation { duration: 150 }
+                                    if (root.detailsExpanded) {
+                                        if (gamesGridView.columns <= 2) return vpx(baseSize * 1.0)
+                                            if (gamesGridView.columns <= 3) return vpx(baseSize * 0.8)
+                                                if (gamesGridView.columns <= 4) return vpx(baseSize * 0.6)
+                                                    return vpx(baseSize * 0.5)
                                     }
 
-                                    Behavior on scale {
-                                        NumberAnimation { duration: 100 }
+                                    else {
+                                        if (gamesGridView.columns <= 2) return vpx(baseSize * 2.0)
+                                            if (gamesGridView.columns <= 3) return vpx(baseSize * 1.5)
+                                                if (gamesGridView.columns <= 4) return vpx(baseSize * 1.0)
+                                                    if (gamesGridView.columns <= 5) return vpx(baseSize * 0.9)
+                                                        return vpx(baseSize * 0.8)
+                                    }
+                                }
+                                horizontalAlignment: Text.AlignHCenter
+                                maximumLineCount: {
+                                    if (gamesGridView.columns <= 2) return 3
+                                        if (gamesGridView.columns <= 4) return 2
+                                            return 2
+                                }
+                                wrapMode: Text.WordWrap
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+
+                                Behavior on font.pixelSize {
+                                    NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
+                                }
+                            }
+
+                            Row {
+                                id: itemIco
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                height: {
+                                    var baseHeight = 30
+
+                                    if (root.detailsExpanded) {
+                                        if (gamesGridView.columns <= 2) return vpx(baseHeight * 0.8)
+                                            if (gamesGridView.columns <= 3) return vpx(baseHeight * 0.6)
+                                                return vpx(baseHeight * 0.4)
+                                    }
+                                    else {
+                                        if (gamesGridView.columns <= 2) return vpx(baseHeight * 1.2)
+                                            if (gamesGridView.columns <= 3) return vpx(baseHeight)
+                                                if (gamesGridView.columns <= 5) return vpx(baseHeight * 0.8)
+                                                    return vpx(baseHeight * 0.6)
+                                    }
+                                }
+                                spacing: {
+                                    if (root.detailsExpanded) {
+                                        if (gamesGridView.columns <= 2) return vpx(15)
+                                            if (gamesGridView.columns <= 3) return vpx(12)
+                                                return vpx(8)
+                                    }
+                                    else {
+                                        if (gamesGridView.columns <= 2) return vpx(15)
+                                            if (gamesGridView.columns <= 4) return vpx(10)
+                                                return vpx(5)
+                                    }
+                                }
+                                visible: isCurrent
+
+                                Item {
+                                    id: historyItem
+                                    width: parent.height * 0.8
+                                    height: width
+                                    visible: modelData.lastPlayed && modelData.lastPlayed.toString() !== "Invalid Date"
+
+                                    Image {
+                                        anchors.fill: parent
+                                        source: "assets/images/icons/history.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        mipmap: true
+                                        opacity: 0.8
                                     }
                                 }
 
-                                MouseArea {
-                                    id: playMouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
+                                Item {
+                                    id: favoriteItem
+                                    width: parent.height * 0.8
+                                    height: width
 
-                                    onClicked: {
-                                        modelData.launch()
-                                        playIcon.scale = 0.8
-                                        playScaleBackTimer.restart()
+                                    Image {
+                                        id: favoriteIcon
+                                        anchors.fill: parent
+                                        source: modelData.favorite ?
+                                        "assets/images/icons/favorite-yes.svg" :
+                                        "assets/images/icons/favorite-no.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        mipmap: true
+                                        opacity: favoriteMouseArea.containsMouse ? 1.0 : 0.8
+
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 150 }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation { duration: 100 }
+                                        }
                                     }
 
-                                    onPressed: {
-                                        playIcon.scale = 0.9
+                                    MouseArea {
+                                        id: favoriteMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+
+                                        onClicked: {
+                                            modelData.favorite = !modelData.favorite
+                                            favoriteIcon.scale = 0.8
+                                            scaleBackTimer.restart()
+                                        }
+
+                                        onPressed: {
+                                            favoriteIcon.scale = 0.9
+                                        }
+
+                                        onReleased: {
+                                            favoriteIcon.scale = 1.0
+                                        }
+
+                                        Timer {
+                                            id: scaleBackTimer
+                                            interval: 100
+                                            onTriggered: favoriteIcon.scale = 1.0
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    id: playItem
+                                    width: parent.height * 0.8
+                                    height: width
+
+                                    Image {
+                                        id: playIcon
+                                        anchors.fill: parent
+                                        source: "assets/images/icons/play.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        mipmap: true
+                                        opacity: playMouseArea.containsMouse ? 1.0 : 0.8
+
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 150 }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation { duration: 100 }
+                                        }
                                     }
 
-                                    onReleased: {
-                                        playIcon.scale = 1.0
-                                    }
+                                    MouseArea {
+                                        id: playMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
 
-                                    Timer {
-                                        id: playScaleBackTimer
-                                        interval: 100
-                                        onTriggered: playIcon.scale = 1.0
+                                        onClicked: {
+                                            modelData.launch()
+                                            playIcon.scale = 0.8
+                                            playScaleBackTimer.restart()
+                                        }
+
+                                        onPressed: {
+                                            playIcon.scale = 0.9
+                                        }
+
+                                        onReleased: {
+                                            playIcon.scale = 1.0
+                                        }
+
+                                        Timer {
+                                            id: playScaleBackTimer
+                                            interval: 100
+                                            onTriggered: playIcon.scale = 1.0
+                                        }
                                     }
                                 }
                             }
@@ -823,14 +913,10 @@ FocusScope {
     }
 
     onCurrentCollectionChanged: {
-        ////console.log("GamesGridView: Collection changed")
         if (currentCollection && !gamesFilter.globalSearchMode) {
-            ////console.log("GamesGridView: Resetting current index (not in global search)")
             currentIndex = 0
             root.currentGameIndex = 0
             gamesGrid.forceLayout()
-        } else if (gamesFilter.globalSearchMode) {
-            ////console.log("GamesGridView: Collection changed but maintaining global search")
         }
     }
 
@@ -853,12 +939,10 @@ FocusScope {
     }
 
     function resetAllFilters() {
-        //console.log("GamesGridView: Resetting all filters")
         if (sharedFilter) sharedFilter.resetFilter()
     }
 
     function updateFilter(filterType) {
-        //console.log("GamesGridView: Updating filter to", filterType)
         if (sharedFilter) sharedFilter.updateFilter(filterType)
 
             currentIndex = 0
@@ -874,10 +958,6 @@ FocusScope {
     }
 
     function updateSearch(searchText, searchField) {
-        //console.log("GamesGridView: Updating search")
-        //console.log("  - Text:", searchText)
-        //console.log("  - Field:", searchField)
-
         if (sharedFilter) sharedFilter.updateSearch(searchText, searchField)
 
             currentIndex = 0
@@ -885,17 +965,14 @@ FocusScope {
 
             if (gamesFilter.filteredModel && gamesFilter.filteredModel.count > 0) {
                 root.currentGame = gamesFilter.filteredModel.get(0)
-                //console.log("GamesGridView: First result:", root.currentGame.title)
             } else {
                 root.currentGame = null
-                //console.log("GamesGridView: No results")
             }
 
             ensureCurrentVisible()
     }
 
     function resetFilter() {
-        //console.log("GamesGridView: Resetting filter")
         if (sharedFilter) sharedFilter.resetFilter()
 
             currentIndex = 0
@@ -935,11 +1012,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        //console.log("=".repeat(60))
-        //console.log("GamesGridView: Loaded with SHARED filter")
-        //console.log("  - Total games available:", api.allGames.count)
-        //console.log("  - Grid layout:", columns, "x", rows)
-        //console.log("  - Using centralized GamesFilter from theme.qml")
-        //console.log("=".repeat(60))
+        //console.log("GamesGridView loaded with dynamic zoom support")
     }
 }

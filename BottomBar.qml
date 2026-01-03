@@ -146,7 +146,7 @@ Rectangle {
     RowLayout {
         anchors.fill: parent
         anchors.margins: vpx(8)
-        spacing: vpx(20)
+        spacing: vpx(10)
         z: 10
 
         Loader {
@@ -167,18 +167,180 @@ Rectangle {
             Layout.minimumWidth: vpx(30)
         }
 
-        RecentActivityPanel {
-            id: recentActivityPanel
+        ZoomControl {
             Layout.fillHeight: true
-            Layout.preferredWidth: vpx(800)
-            Layout.maximumWidth: vpx(800)
-            Layout.minimumWidth: vpx(600)
+            Layout.preferredWidth: vpx(220)
+            Layout.alignment: Qt.AlignVCenter
+            visible: true
+
+            zoomLevel: root.zoomLevel
+            accentColor: root.accentColor
+            borderColor: root.borderColor
+            secondaryTextColor: root.secondaryTextColor
+            condensedFontFamily: root.condensedFontFamily
+
+            onZoomChanged: {
+                root.zoomLevel = level
+                api.memory.set('zoomLevel', level)
+            }
         }
 
         Item {
-            Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumWidth: vpx(15)
+            Layout.preferredWidth: vpx(60)
+
+            Rectangle {
+                id: notificationButton
+                anchors.centerIn: parent
+                width: vpx(70)
+                height: vpx(70)
+                radius: vpx(8)
+                color: notificationDropdownMenu.visible ?
+                Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.2) :
+                "transparent"
+                border.width: vpx(1)
+                border.color: notificationDropdownMenu.visible ? root.accentColor : root.borderColor
+
+                Behavior on color {
+                    ColorAnimation { duration: 200 }
+                }
+
+                Behavior on border.color {
+                    ColorAnimation { duration: 200 }
+                }
+
+                Item {
+                    id: iconContainer
+                    anchors.centerIn: parent
+                    width: vpx(30)
+                    height: vpx(30)
+
+                    rotation: notificationDropdownMenu.visible ? 180 : 0
+
+                    Behavior on rotation {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+
+                    Image {
+                        id: menuIcon
+                        anchors.fill: parent
+                        source: "assets/images/icons/menu-dropdown.svg"
+                        fillMode: Image.PreserveAspectFit
+                        mipmap: true
+                    }
+
+                    ColorOverlay {
+                        anchors.fill: menuIcon
+                        source: menuIcon
+                        color: notificationDropdownMenu.visible ? root.accentColor : root.secondaryTextColor
+
+                        Behavior on color {
+                            ColorAnimation { duration: 100 }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: notificationBadge
+                    visible: false
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: vpx(-4)
+                    width: vpx(20)
+                    height: vpx(20)
+                    radius: vpx(10)
+                    color: "#f44336"
+                    border.width: vpx(2)
+                    border.color: root.panelColor
+
+                    property int count: 0
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: Math.min(parent.count, 99)
+                        font.family: root.condensedFontFamily
+                        font.pixelSize: vpx(12)
+                        font.bold: true
+                        color: "white"
+                    }
+
+                    Timer {
+                        interval: 5000
+                        running: true
+                        repeat: true
+                        onTriggered: {
+                            updateBadgeCount()
+                        }
+                    }
+
+                    Component.onCompleted: {
+                        updateBadgeCount()
+                    }
+
+                    function updateBadgeCount() {
+                        var component = Qt.createComponent("RecentActivityPanel.qml")
+                        if (component.status === Component.Ready) {
+                            var tempPanel = component.createObject(notificationBadge, {
+                                gameModel: api.allGames,
+                                visible: false
+                            })
+
+                            if (tempPanel) {
+                                tempPanel.updateNotifications()
+                                var allNotifs = tempPanel.getAllNotifications()
+                                count = allNotifs.length
+                                visible = count > 0
+                                tempPanel.destroy()
+                            }
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+
+                    onClicked: {
+                        if (!notificationDropdownMenu.visible) {
+                            var allNotifs = []
+                            var component = Qt.createComponent("RecentActivityPanel.qml")
+                            if (component.status === Component.Ready) {
+                                var tempPanel = component.createObject(notificationButton, {
+                                    gameModel: api.allGames,
+                                    visible: false
+                                })
+
+                                if (tempPanel) {
+                                    tempPanel.updateNotifications()
+                                    allNotifs = tempPanel.getAllNotifications()
+                                    tempPanel.destroy()
+                                }
+                            }
+
+                            notificationDropdownMenu.loadNotifications(allNotifs)
+                            notificationDropdownMenu.showWithAnimation()
+                        } else {
+                            notificationDropdownMenu.hideWithAnimation()
+                        }
+                    }
+
+                    onEntered: {
+                        parent.scale = 1.05
+                    }
+
+                    onExited: {
+                        parent.scale = 1.0
+                    }
+                }
+
+                Behavior on scale {
+                    NumberAnimation { duration: 150 }
+                }
+            }
         }
 
         Item {
@@ -294,6 +456,41 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    NotificationDropdown {
+        id: notificationDropdownMenu
+        anchors.bottom: parent.top
+        anchors.right: parent.right
+        anchors.rightMargin: vpx(5)
+        anchors.bottomMargin: vpx(10)
+        z: 1000
+
+        accentColor: root.accentColor
+        panelColor: root.panelColor
+        textColor: root.textColor
+        secondaryTextColor: root.secondaryTextColor
+        fontFamily: root.fontFamily
+        condensedFontFamily: root.condensedFontFamily
+
+        onNotificationClicked: {
+            if (game) {
+                game.launch()
+                visible = false
+            }
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        enabled: notificationDropdownMenu.visible
+        z: 999
+        propagateComposedEvents: false
+
+        onClicked: {
+            notificationDropdownMenu.hideWithAnimation()
+            mouse.accepted = true
         }
     }
 

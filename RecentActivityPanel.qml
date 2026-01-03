@@ -23,6 +23,9 @@ Item {
     property color multiplayerColor: "#00BCD4"
     property color infoColor: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.9)
 
+    function vpx(value) {
+        return Math.round(value * root.height / 1080)
+    }
 
     function getSystemImagePath(game) {
         if (!game || !game.collections || game.collections.count === 0) {
@@ -340,6 +343,10 @@ Item {
         if (notifications.length > 1) {
             notificationTimer.restart()
         }
+    }
+
+    function getAllNotifications() {
+        return notifications
     }
 
     function calculateGamingStreak() {
@@ -896,7 +903,6 @@ Item {
             "Don't stop now"
         ];
 
-
         if (game.playTime && game.playTime > 0) {
             return messages[Math.floor(Math.random() * messages.length)] +
             " • " + formatPlayTime(game.playTime) + " total"
@@ -941,8 +947,10 @@ Item {
             height: parent.height
             y: 0
             radius: vpx(10)
-            color: Qt.rgba(currentNotification.color.r, currentNotification.color.g,
-                           currentNotification.color.b, 0.04)
+            color: Qt.rgba(0, 0, 0, 0.7)
+            border.width: vpx(1)
+            border.color: Qt.rgba(currentNotification.color.r, currentNotification.color.g,
+                                  currentNotification.color.b, 0.4)
 
             layer.enabled: true
             layer.effect: DropShadow {
@@ -1109,10 +1117,15 @@ Item {
                         Row {
                             Layout.fillWidth: true
                             spacing: vpx(4)
-                            visible: notifications.length > 1
+                            visible: {
+                                if (isFloatingMode) {
+                                    return notifications.length > 1
+                                }
+                                return notifications.length > 1
+                            }
 
                             Repeater {
-                                model: notifications.length
+                                model: isFloatingMode ? notifications.length : notifications.length
 
                                 Rectangle {
                                     width: vpx(16)
