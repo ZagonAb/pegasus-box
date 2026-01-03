@@ -218,8 +218,10 @@ FocusScope {
                 GameDetailsPanel {
                     id: gameDetailsPanel
                     property var sharedFilter: sharedGamesFilter
-                    Layout.preferredWidth: detailsExpanded ? root.width * 0.39 : root.width * 0.24
                     Layout.fillHeight: true
+                    property real detailsPanelWidth: detailsExpanded ? root.width * 0.39 : root.width * 0.24
+                    Layout.preferredWidth: detailsPanelWidth
+
 
                     Behavior on Layout.preferredWidth {
                         NumberAnimation {
@@ -229,10 +231,11 @@ FocusScope {
                     }
 
                     onExpansionChanged: {
-                        root.detailsExpanded = expanded
-
-                        if (expanded) {
-                            root.focusedPanel = "details"
+                        if (root.detailsExpanded !== expanded && !root.isRestoringState) {
+                            Qt.callLater(function() {
+                                root.detailsExpanded = expanded
+                                root.saveState("details_expanded_changed")
+                            })
                         }
                     }
                 }
