@@ -238,14 +238,15 @@ Item {
                         }*/
 
                         Rectangle {
-                            width: vpx(32)
-                            height: vpx(20)
+                            width: vpx(28)
+                            height: vpx(15)
                             radius: vpx(4)
                             color: accentColor
                             anchors.bottom: parent.top
                             anchors.bottomMargin: vpx(6)
                             anchors.horizontalCenter: parent.horizontalCenter
-                            visible: sliderMouseArea.containsMouse || sliderMouseArea.dragging
+                            //visible: sliderMouseArea.containsMouse || sliderMouseArea.dragging
+                            visible: true
                             opacity: visible ? 1.0 : 0.0
 
                             Behavior on opacity {
