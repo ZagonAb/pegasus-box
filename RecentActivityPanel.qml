@@ -7,7 +7,8 @@ Item {
     id: recentActivityPanel
 
     property var gameModel: api.allGames
-    property var currentNotification: notifications[currentNotificationIndex]
+    //property var currentNotification: notifications[currentNotificationIndex]
+    property var currentNotification: notifications && notifications.length > 0 ? notifications[currentNotificationIndex] : null
     property int currentNotificationIndex: 0
     property int currentDeveloperIndex: 0
     property int autoAdvanceInterval: 5000
@@ -22,6 +23,22 @@ Item {
     property color milestoneColor: "#FFC107"
     property color multiplayerColor: "#00BCD4"
     property color infoColor: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.9)
+    property bool dropdownVisible: false
+
+    property var safeCurrentNotification: {
+        if (currentNotification) {
+            return currentNotification;
+        } else {
+            return {
+                title: "",
+                message: "",
+                color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 1.0),
+                icon: "",
+                game: null,
+                type: ""
+            }
+        }
+    }
 
     function vpx(value) {
         return Math.round(value * root.height / 1080)
@@ -68,6 +85,14 @@ Item {
     }
 
     function updateNotifications() {
+        if (!dropdownVisible) {
+            return;
+        }
+
+        if (!notifications || notifications.length === 0) {
+            notifications = [];
+        }
+
         var newNotifications = []
         var lastPlayedGame = findLastPlayedGame()
 
@@ -245,9 +270,19 @@ Item {
             var devStats = devStatsList[currentDeveloperIndex % devStatsList.length]
 
             var timeText = ""
-            if (devStats.totalTime > 3600) {
+            if (devStats.totalTime > 0) {
                 var hours = Math.floor(devStats.totalTime / 3600)
-                timeText = " • " + hours + "h played"
+                var minutes = Math.floor((devStats.totalTime % 3600) / 60)
+
+                if (hours > 0) {
+                    timeText = " • " + hours + "h"
+                    if (minutes > 0 && minutes < 60) {
+                        timeText += " " + minutes + "m"
+                    }
+                    timeText += " played"
+                } else if (minutes > 0) {
+                    timeText = " • " + minutes + "m played"
+                }
             }
 
             newNotifications.push({
@@ -338,7 +373,13 @@ Item {
             })
         }
 
+        //console.log("Total notifications generated:", newNotifications.length)
+        newNotifications.forEach(function(notif, idx) {
+            //console.log(idx + ":", notif.type, "-", notif.title)
+        })
+
         notifications = newNotifications
+        //console.log("=== UPDATE NOTIFICATIONS COMPLETED ===")
 
         if (notifications.length > 1) {
             notificationTimer.restart()
@@ -353,35 +394,36 @@ Item {
         var today = new Date()
         today.setHours(0, 0, 0, 0)
 
-        var daysPlayed = []
+        var uniqueDays = new Set()
 
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
             if (game.lastPlayed && game.lastPlayed.toString() !== "Invalid Date") {
                 var playDate = new Date(game.lastPlayed)
                 playDate.setHours(0, 0, 0, 0)
-                var dayKey = playDate.getTime()
+                var dayKey = playDate.toISOString().split('T')[0]
 
-                if (daysPlayed.indexOf(dayKey) === -1) {
-                    daysPlayed.push(dayKey)
-                }
+                uniqueDays.add(dayKey)
             }
         }
 
-        daysPlayed.sort(function(a, b) { return b - a })
+        var sortedDays = Array.from(uniqueDays).sort().reverse()
 
         var streak = 0
-        var checkDate = new Date(today)
+        var currentDate = new Date(today)
 
-        for (var j = 0; j < daysPlayed.length; j++) {
-            if (daysPlayed[j] === checkDate.getTime()) {
+        for (var j = 0; j < 365; j++) {
+            var dateStr = currentDate.toISOString().split('T')[0]
+
+            if (sortedDays.includes(dateStr)) {
                 streak++
-                checkDate.setDate(checkDate.getDate() - 1)
+                currentDate.setDate(currentDate.getDate() - 1)
             } else {
                 break
             }
         }
 
+        //console.log("Streak calculated:", streak, "days")
         return streak
     }
 
@@ -652,14 +694,26 @@ Item {
 
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
-            if (game.playTime > 0 && game.genreList && game.genreList.length > 0) {
-                for (var j = 0; j < game.genreList.length; j++) {
-                    var genre = game.genreList[j]
-                    if (!genreTime[genre]) {
-                        genreTime[genre] = 0
+            if (game.playTime > 0) {
+                var genres = []
+
+                if (game.genreList && game.genreList.length > 0) {
+                    genres = game.genreList
+                } else if (game.genres) {
+                    genres = game.genres.split(',').map(g => g.trim())
+                } else if (game.genre) {
+                    genres = [game.genre]
+                }
+
+                for (var j = 0; j < genres.length; j++) {
+                    var genre = genres[j].trim()
+                    if (genre && genre.length > 0) {
+                        if (!genreTime[genre]) {
+                            genreTime[genre] = 0
+                        }
+                        genreTime[genre] += game.playTime
+                        totalTime += game.playTime
                     }
-                    genreTime[genre] += game.playTime
-                    totalTime += game.playTime
                 }
             }
         }
@@ -676,7 +730,7 @@ Item {
 
         if (topGenre && totalTime > 0) {
             var percent = Math.round((maxTime / totalTime) * 100)
-            if (percent >= 30) {
+            if (percent >= 15) {
                 return {
                     genre: topGenre,
                     percent: percent
@@ -711,16 +765,29 @@ Item {
 
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
-            if (game.playCount >= 3 && game.lastPlayed &&
-                game.lastPlayed.toString() !== "Invalid Date" &&
-                game.lastPlayed < threeMonthsAgo) {
-                candidates.push(game)
+            if (game.playCount >= 2) {
+                if (game.lastPlayed && game.lastPlayed.toString() !== "Invalid Date") {
+                    var lastPlayedDate = new Date(game.lastPlayed)
+                    if (lastPlayedDate < threeMonthsAgo) {
+                        candidates.push({
+                            game: game,
+                            monthsAgo: Math.floor((new Date() - lastPlayedDate) / (1000 * 60 * 60 * 24 * 30))
+                        })
+                    }
+                } else if (game.playCount >= 3) {
+                    candidates.push({
+                        game: game,
+                        monthsAgo: 4
+                    })
                 }
+            }
         }
 
         if (candidates.length > 0) {
-            candidates.sort(function(a, b) { return b.playCount - a.playCount })
-            return candidates[0]
+            candidates.sort(function(a, b) {
+                return b.game.playCount - a.game.playCount
+            })
+            return candidates[0].game
         }
 
         return null
@@ -778,22 +845,32 @@ Item {
     }
 
     function findMarathonSession() {
-        var lastPlayedGame = findLastPlayedGame()
+        var marathonCandidates = []
+        var yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        yesterday.setHours(0, 0, 0, 0)
 
-        if (lastPlayedGame && lastPlayedGame.playTime >= 18000) {
-            var yesterday = new Date()
-            yesterday.setDate(yesterday.getDate() - 1)
-            yesterday.setHours(0, 0, 0, 0)
-
-            var today = new Date()
-            today.setHours(0, 0, 0, 0)
-
-            if (lastPlayedGame.lastPlayed >= yesterday && lastPlayedGame.lastPlayed < today) {
-                return {
-                    game: lastPlayedGame,
-                    duration: lastPlayedGame.playTime
+        for (var i = 0; i < gameModel.count; i++) {
+            var game = gameModel.get(i)
+            if (game.playTime >= 7200) {
+                if (game.lastPlayed && game.lastPlayed.toString() !== "Invalid Date") {
+                    var lastPlayedDate = new Date(game.lastPlayed)
+                    if (lastPlayedDate >= yesterday) {
+                        marathonCandidates.push({
+                            game: game,
+                            duration: game.playTime,
+                            hours: Math.floor(game.playTime / 3600)
+                        })
+                    }
                 }
             }
+        }
+
+        if (marathonCandidates.length > 0) {
+            marathonCandidates.sort(function(a, b) {
+                return b.duration - a.duration
+            })
+            return marathonCandidates[0]
         }
 
         return null
@@ -806,9 +883,12 @@ Item {
         for (var i = 0; i < gameModel.count; i++) {
             var game = gameModel.get(i)
             if (game.lastPlayed && game.lastPlayed.toString() !== "Invalid Date") {
-                if (!lastTime || game.lastPlayed > lastTime) {
-                    lastTime = game.lastPlayed
-                    lastPlayed = game
+                var playDate = new Date(game.lastPlayed)
+                if (!isNaN(playDate.getTime())) {
+                    if (!lastTime || playDate > lastTime) {
+                        lastTime = playDate
+                        lastPlayed = game
+                    }
                 }
             }
         }
@@ -868,15 +948,21 @@ Item {
     }
 
     function formatLastPlayedMessage(game, hoursAgo, daysAgo) {
-        if (daysAgo === 0) {
-            if (hoursAgo === 0) return "Just played " + Utils.cleanGameTitle(game.title)
-                if (hoursAgo === 1) return "Played " + Utils.cleanGameTitle(game.title) + " 1 hour ago"
-                    return "Played " + Utils.cleanGameTitle(game.title) + " " + hoursAgo + " hours ago"
-        } else if (daysAgo === 1) {
-            return "Played " + Utils.cleanGameTitle(game.title) + " yesterday"
-        } else {
-            return "Played " + Utils.cleanGameTitle(game.title) + " " + daysAgo + " days ago"
-        }
+        if (!game || !game.title) return "Continue playing"
+
+            var cleanTitle = Utils.cleanGameTitle(game.title)
+
+            //console.log("last_played debug:", cleanTitle, "hoursAgo:", hoursAgo, "daysAgo:", daysAgo)
+
+            if (daysAgo === 0) {
+                if (hoursAgo === 0) return "Just played " + cleanTitle
+                    if (hoursAgo === 1) return "Played " + cleanTitle + " 1 hour ago"
+                        return "Played " + cleanTitle + " " + hoursAgo + " hours ago"
+            } else if (daysAgo === 1) {
+                return "Played " + cleanTitle + " yesterday"
+            } else {
+                return "Played " + cleanTitle + " " + daysAgo + " days ago"
+            }
     }
 
     function formatStatsMessage(game) {
@@ -922,6 +1008,16 @@ Item {
     }
 
     Component.onCompleted: {
+        // Inicializar currentNotification con un valor por defecto
+        currentNotification = {
+            title: "",
+            message: "",
+            color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 1.0),
+            icon: "",
+            game: null,
+            type: ""
+        }
+
         updateNotifications()
     }
 
@@ -931,7 +1027,12 @@ Item {
         running: notifications.length > 1
         repeat: true
         onTriggered: {
-            slideOutAnimation.start()
+            currentCollectionProgressIndex++
+            if (currentCollectionProgressIndex >= allCollectionProgress.length) {
+                currentCollectionProgressIndex = 0
+                allCollectionProgress = calculateCollectionProgress()
+            }
+            updateNotifications()
         }
     }
 
@@ -949,9 +1050,10 @@ Item {
             radius: vpx(10)
             color: Qt.rgba(0, 0, 0, 0.7)
             border.width: vpx(1)
-            border.color: Qt.rgba(currentNotification.color.r, currentNotification.color.g,
-                                  currentNotification.color.b, 0.4)
-
+            border.color: safeCurrentNotification && safeCurrentNotification.color ?
+            Qt.rgba(safeCurrentNotification.color.r, safeCurrentNotification.color.g,
+                    safeCurrentNotification.color.b, 0.4) :
+                    Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.4)
             layer.enabled: true
             layer.effect: DropShadow {
                 horizontalOffset: 0
@@ -993,8 +1095,8 @@ Item {
                                 Image {
                                     id: gameImage
                                     anchors.fill: parent
-                                    source: currentNotification.game && currentNotification.game.assets ?
-                                    currentNotification.game.assets.logo : ""
+                                    source: safeCurrentNotification && safeCurrentNotification.game && safeCurrentNotification.game.assets ?
+                                    safeCurrentNotification.game.assets.logo : ""
                                     fillMode: Image.PreserveAspectFit
                                     asynchronous: true
                                     cache: true
@@ -1020,35 +1122,28 @@ Item {
                                         width: vpx(80)
                                         height: vpx(80)
                                         anchors.margins: vpx(5)
-                                        source: {
-                                            if (currentNotification.game) {
-                                                return recentActivityPanel.getSystemImagePath(currentNotification.game)
-                                            } else if (currentNotification.type === "collection_progress" && currentNotification.collectionShortName) {
-                                                //console.log("Collection Progress - shortName:", currentNotification.collectionShortName)
-                                                return recentActivityPanel.getSystemImagePathFromShortName(currentNotification.collectionShortName)
-                                            }
-                                            return ""
-                                        }
+                                        source: safeCurrentNotification ?
+                                        (safeCurrentNotification.game ? recentActivityPanel.getSystemImagePath(safeCurrentNotification.game) :
+                                        (safeCurrentNotification.type === "collection_progress" && safeCurrentNotification.collectionShortName ?
+                                        recentActivityPanel.getSystemImagePathFromShortName(safeCurrentNotification.collectionShortName) : "")) : ""
+
                                         fillMode: Image.PreserveAspectFit
                                         asynchronous: true
                                         mipmap: true
                                         visible: status === Image.Ready && source !== ""
-
-                                        onStatusChanged: {
-                                            //console.log("SystemImage status:", status, "source:", source)
-                                        }
                                     }
 
                                     Text {
                                         id: shrtNameCollection
                                         anchors.centerIn: parent
                                         text: {
-                                            if (currentNotification.game) {
-                                                return recentActivityPanel.getCollectionShortName(currentNotification.game)
-                                            } else if (currentNotification.type === "collection_progress" && currentNotification.collectionShortName) {
-                                                return recentActivityPanel.getCollectionShortNameFromString(currentNotification.collectionShortName)
-                                            }
-                                            return "??"
+                                            if (!safeCurrentNotification) return "??"
+                                                if (safeCurrentNotification.game) {
+                                                    return recentActivityPanel.getCollectionShortName(safeCurrentNotification.game)
+                                                } else if (safeCurrentNotification.type === "collection_progress" && safeCurrentNotification.collectionShortName) {
+                                                    return recentActivityPanel.getCollectionShortNameFromString(safeCurrentNotification.collectionShortName)
+                                                }
+                                                return "??"
                                         }
                                         color: root.textColor
                                         font.family: root.condensedFontFamily
@@ -1063,17 +1158,18 @@ Item {
                                 id: notificationContent
                                 anchors.fill: parent
                                 anchors.margins: vpx(2)
-                                visible: !currentNotification.game && currentNotification.type !== "collection_progress"
-
+                                //visible: !currentNotification.game && currentNotification.type !== "collection_progress"
+                                visible: safeCurrentNotification && !safeCurrentNotification.game && safeCurrentNotification.type !== "collection_progress"
                                 Image {
                                     id: backupIcon
                                     anchors.centerIn: parent
                                     width: vpx(60)
                                     height: vpx(60)
-                                    source: currentNotification.icon
+                                    source: safeCurrentNotification && safeCurrentNotification.icon ? safeCurrentNotification.icon : ""
                                     fillMode: Image.PreserveAspectFit
                                     mipmap: true
                                     opacity: 1.0
+                                    visible: source !== ""
 
                                     Behavior on opacity {
                                         NumberAnimation { duration: 300 }
@@ -1091,8 +1187,10 @@ Item {
 
                         Text {
                             Layout.fillWidth: true
-                            text: currentNotification.title
-                            color: currentNotification.color
+                            text: safeCurrentNotification ? safeCurrentNotification.title : ""
+                            color: currentNotification && currentNotification.color ?
+                            Qt.rgba(currentNotification.color.r, currentNotification.color.g, currentNotification.color.b, 0.4) :
+                            "transparent"
                             font.family: root.condensedFontFamily
                             font.pixelSize: vpx(20)
                             font.bold: true
@@ -1107,7 +1205,7 @@ Item {
                             id: textMessege
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            text: currentNotification.message
+                            text: safeCurrentNotification ? safeCurrentNotification.message : ""
                             color: root.textColor
                             font.family: root.fontFamily
                             font.pixelSize: vpx(16)
@@ -1144,14 +1242,16 @@ Item {
                         Layout.preferredWidth: vpx(50)
                         Layout.preferredHeight: vpx(50)
                         Layout.alignment: Qt.AlignVCenter
-                        visible: currentNotification.game
+                        visible: safeCurrentNotification && safeCurrentNotification.game
 
                         Rectangle {
                             id: buttonBackground
                             anchors.fill: parent
                             radius: width / 2
-                            color: Qt.rgba(currentNotification.color.r, currentNotification.color.g,
-                                            currentNotification.color.b, 0.2)
+                            color: safeCurrentNotification && safeCurrentNotification.color ?
+                            Qt.rgba(safeCurrentNotification.color.r, safeCurrentNotification.color.g,
+                                    safeCurrentNotification.color.b, 0.2) :
+                                    Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.2)
 
                             SequentialAnimation on scale {
                                 running: actionButton.visible
@@ -1177,8 +1277,8 @@ Item {
                             cursorShape: Qt.PointingHandCursor
 
                             onClicked: {
-                                if (currentNotification.game) {
-                                    currentNotification.game.launch()
+                                if (safeCurrentNotification && safeCurrentNotification.game) {
+                                    safeCurrentNotification.game.launch()
                                 }
                             }
 
@@ -1203,38 +1303,6 @@ Item {
                     }
                 }
             }
-
-            NumberAnimation {
-                id: slideOutAnimation
-                target: currentCard
-                property: "y"
-                from: 0
-                to: currentCard.height + vpx(20)
-                duration: 400
-                easing.type: Easing.InBack
-                onStopped: {
-                    currentNotificationIndex = (currentNotificationIndex + 1) % notifications.length
-                    slideInAnimation.start()
-                }
-            }
-
-            NumberAnimation {
-                id: slideInAnimation
-                target: currentCard
-                property: "y"
-                from: currentCard.height + vpx(20)
-                to: 0
-                duration: 500
-                easing.type: Easing.OutBack
-
-                onStarted: {
-                    if (notifications[currentNotificationIndex] &&
-                        notifications[currentNotificationIndex].type === "collection_progress") {
-                        currentCollectionProgressIndex++
-                        updateNotifications()
-                        }
-                }
-            }
         }
     }
 
@@ -1248,4 +1316,5 @@ Item {
             }
         }
     }
+
 }

@@ -15,6 +15,7 @@ Rectangle {
     property real targetY: 0
     property real initialY: vpx(50)
     property bool animationRunning: false
+    property int currentCollectionProgressIndex: 0
 
     transform: Translate {
         id: translateTransform
@@ -65,7 +66,8 @@ Rectangle {
                     notificationColor: colorObj,
                     hasGame: true,
                     gameData: notif.game,
-                    notificationType: notif.type || ""
+                    notificationType: notif.type || "",
+                    collectionShortName: notif.collectionShortName || ""
                 })
             } else {
                 notificationListModel.append({
@@ -74,7 +76,8 @@ Rectangle {
                     icon: notif.icon || "",
                     notificationColor: colorObj,
                     hasGame: false,
-                    notificationType: notif.type || ""
+                    notificationType: notif.type || "",
+                    collectionShortName: notif.collectionShortName || ""
                 })
             }
         }
@@ -99,6 +102,51 @@ Rectangle {
 
             animationRunning = true
             hideAnimation.start()
+    }
+
+    function updateCollectionProgress() {
+        if (!visible) return
+
+            currentCollectionProgressIndex++
+            var collectionItems = []
+
+            for (var i = 0; i < notificationListModel.count; i++) {
+                var item = notificationListModel.get(i)
+                if (item && item.notificationType === "collection_progress") {
+                    collectionItems.push({
+                        index: i,
+                        item: item
+                    })
+                }
+            }
+
+            if (collectionItems.length > 0) {
+                var currentItem = collectionItems[currentCollectionProgressIndex % collectionItems.length]
+                var collectionIndex = currentItem.index
+
+                var tempPanel = recentActivityPanelComponent.createObject(notificationDropdown, {
+                    gameModel: api.allGames,
+                    visible: false,
+                    dropdownVisible: true
+                })
+
+                if (tempPanel) {
+                    tempPanel.allCollectionProgress = tempPanel.calculateCollectionProgress()
+                    if (tempPanel.allCollectionProgress.length > 0) {
+                        var newProgress = tempPanel.allCollectionProgress[currentCollectionProgressIndex % tempPanel.allCollectionProgress.length]
+
+                        notificationListModel.setProperty(collectionIndex, "title", newProgress.name + " Progress")
+                        notificationListModel.setProperty(collectionIndex, "message", "Played " + newProgress.played + " of " + newProgress.total + " games (" + newProgress.percent + "%)")
+                        notificationListModel.setProperty(collectionIndex, "collectionShortName", newProgress.shortName)
+
+                        var notifItem = notificationListView.itemAtIndex(collectionIndex)
+                        if (notifItem && notifItem.horizontalSlideAnimation) {
+                            notifItem.horizontalSlideAnimation.start()
+                        }
+                    }
+                    tempPanel.destroy()
+                }
+            }
     }
 
     layer.enabled: true
@@ -205,6 +253,7 @@ Rectangle {
         }
 
         delegate: Rectangle {
+            id: notificationDelegate
             width: notificationListView.width
             height: vpx(80)
             color: {
@@ -239,6 +288,34 @@ Rectangle {
                     return notificationDropdown.accentColor
                 }
                 return Qt.rgba(nc.r || 0.1, nc.g || 0.5, nc.b || 0.8, 1.0)
+            }
+
+            property bool isCollectionProgress: model.notificationType === "collection_progress"
+
+            SequentialAnimation {
+                id: horizontalSlideAnimation
+
+                PropertyAnimation {
+                    target: notificationDelegate
+                    property: "x"
+                    to: notificationDelegate.width
+                    duration: 300
+                    easing.type: Easing.InCubic
+                }
+
+                ScriptAction {
+                    script: {
+                        notificationDelegate.x = -notificationDelegate.width
+                    }
+                }
+
+                PropertyAnimation {
+                    target: notificationDelegate
+                    property: "x"
+                    to: 0
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
             }
 
             Behavior on color {
@@ -386,6 +463,21 @@ Rectangle {
         }
     }
 
+    Component {
+        id: recentActivityPanelComponent
+        RecentActivityPanel {}
+    }
+
+    Timer {
+        id: collectionProgressTimer
+        interval: 5000
+        running: notificationDropdown.visible
+        repeat: true
+        onTriggered: {
+            notificationDropdown.updateCollectionProgress()
+        }
+    }
+
     SequentialAnimation {
         id: showAnimation
 
@@ -464,6 +556,7 @@ Rectangle {
         ScriptAction {
             script: {
                 notificationDropdown.animationRunning = false
+                collectionProgressTimer.stop()
             }
         }
     }
@@ -472,4 +565,5 @@ Rectangle {
         enabled: !animationRunning
         NumberAnimation { duration: 200 }
     }
+
 }

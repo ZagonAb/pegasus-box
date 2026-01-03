@@ -248,7 +248,8 @@ Rectangle {
                     if (component.status === Component.Ready) {
                         var tempPanel = component.createObject(notificationBadge, {
                             gameModel: api.allGames,
-                            visible: false
+                            visible: false,
+                            dropdownVisible: notificationDropdownMenu.visible
                         })
 
                         if (tempPanel) {
@@ -290,7 +291,8 @@ Rectangle {
                         if (component.status === Component.Ready) {
                             var tempPanel = component.createObject(notificationBadge, {
                                 gameModel: api.allGames,
-                                visible: false
+                                visible: false,
+                                dropdownVisible: notificationDropdownMenu.visible
                             })
 
                             if (tempPanel) {
@@ -329,7 +331,8 @@ Rectangle {
                             if (component.status === Component.Ready) {
                                 var tempPanel = component.createObject(notificationButton, {
                                     gameModel: api.allGames,
-                                    visible: false
+                                    visible: false,
+                                    dropdownVisible: true
                                 })
 
                                 if (tempPanel) {
@@ -527,4 +530,5 @@ Rectangle {
                 hourIcon.source = "assets/images/icons/CLOCK/hour_" + hour12 + ".svg"
         }
     }
+
 }
