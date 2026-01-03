@@ -10,7 +10,12 @@ FocusScope {
 
     property int currentIndex: 0
 
-    property int columns: {
+    property bool _preventPolishLoop: false
+    property int _cachedColumns: 4
+    property bool _lastDetailsExpanded: false
+    property real _lastZoomLevel: 1.0
+
+    function calculateColumns() {
         if (root.detailsExpanded) {
             if (root.zoomLevel <= 0.5) return 5
                 if (root.zoomLevel <= 0.8) return 4
@@ -24,6 +29,25 @@ FocusScope {
                             return 2
         }
     }
+
+    function updateColumns() {
+        if (_preventPolishLoop) return
+
+            _preventPolishLoop = true
+
+            var newColumns = calculateColumns()
+            if (_cachedColumns !== newColumns) {
+                _cachedColumns = newColumns
+                _lastDetailsExpanded = root.detailsExpanded
+                _lastZoomLevel = root.zoomLevel
+            }
+
+            Qt.callLater(function() {
+                _preventPolishLoop = false
+            })
+    }
+
+    property int columns: _cachedColumns
 
     property int rows: {
         if (root.zoomLevel <= 0.5) return 4
@@ -335,7 +359,7 @@ FocusScope {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
-                cellWidth: width / columns
+                cellWidth: width > 0 && columns > 0 ? width / columns : 100
                 cellHeight: cellWidth * 1.4
 
                 model: gamesFilter.filteredModel
@@ -817,7 +841,6 @@ FocusScope {
                 }
             }
 
-
             Rectangle {
                 id: scrollBar
                 Layout.preferredWidth: vpx(6)
@@ -852,7 +875,6 @@ FocusScope {
                 }
             }
         }
-
     }
 
     Keys.onPressed: {
@@ -930,11 +952,29 @@ FocusScope {
                 root.currentGameIndex < gamesFilter.filteredModel.count) {
 
                 if (currentIndex !== root.currentGameIndex) {
-                    currentIndex = root.currentGameIndex
+                    Qt.callLater(function() {
+                        currentIndex = root.currentGameIndex
+                    })
                 }
 
-                root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
+                Qt.callLater(function() {
+                    if (gamesFilter.filteredModel &&
+                        root.currentGameIndex >= 0 &&
+                        root.currentGameIndex < gamesFilter.filteredModel.count) {
+                        root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
+                        }
+                })
                 }
+        }
+    }
+
+    Connections {
+        target: root
+        function onDetailsExpandedChanged() {
+            updateColumns()
+        }
+        function onZoomLevelChanged() {
+            updateColumns()
         }
     }
 
@@ -1012,6 +1052,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        //console.log("GamesGridView loaded with dynamic zoom support")
+        updateColumns()
     }
 }

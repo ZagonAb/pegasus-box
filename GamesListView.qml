@@ -12,14 +12,35 @@ FocusScope {
     property var currentCollection: root.currentCollection
     property var sharedFilter: null
     property alias gamesFilter: filterAlias
+    property bool _preventPolishLoop: false
+    property int _cachedItemHeight: vpx(85)
+    property real _lastZoomLevel: 1.0
 
-    property int itemHeight: {
+    function calculateItemHeight() {
         if (root.zoomLevel <= 0.5) return vpx(50)
             if (root.zoomLevel <= 0.8) return vpx(65)
                 if (root.zoomLevel <= 1.1) return vpx(85)
                     if (root.zoomLevel <= 1.5) return vpx(110)
                         return vpx(140)
     }
+
+    function updateItemHeight() {
+        if (_preventPolishLoop) return
+
+            _preventPolishLoop = true
+
+            var newHeight = calculateItemHeight()
+            if (_cachedItemHeight !== newHeight) {
+                _cachedItemHeight = newHeight
+                _lastZoomLevel = root.zoomLevel
+            }
+
+            Qt.callLater(function() {
+                _preventPolishLoop = false
+            })
+    }
+
+    property int itemHeight: _cachedItemHeight
 
     QtObject {
         id: filterAlias
@@ -495,6 +516,7 @@ FocusScope {
                 readonly property bool isCurrent: index === gamesList.currentIndex
 
                 Behavior on height {
+                    enabled: !_preventPolishLoop
                     NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
                 }
 
@@ -871,11 +893,26 @@ FocusScope {
                 root.currentGameIndex < gamesFilter.filteredModel.count) {
 
                 if (currentIndex !== root.currentGameIndex) {
-                    currentIndex = root.currentGameIndex
+                    Qt.callLater(function() {
+                        currentIndex = root.currentGameIndex
+                    })
                 }
 
-                root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
+                Qt.callLater(function() {
+                    if (gamesFilter.filteredModel &&
+                        root.currentGameIndex >= 0 &&
+                        root.currentGameIndex < gamesFilter.filteredModel.count) {
+                        root.currentGame = gamesFilter.filteredModel.get(root.currentGameIndex)
+                        }
+                })
                 }
+        }
+    }
+
+    Connections {
+        target: root
+        function onZoomLevelChanged() {
+            updateItemHeight()
         }
     }
 
@@ -955,6 +992,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        //console.log("GamesListView loaded with dynamic zoom support")
+        updateItemHeight()
     }
 }
