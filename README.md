@@ -11,7 +11,7 @@
 
 - A theme for pegasus-frontend
 
-![screen](https://github.com/ZagonAb/pegasusbox/blob/91d5cdbdbf2e577ab4e1c92f1819aab4ef0e4496/.meta/screenshots/screen0.png)
+![screen](https://github.com/ZagonAb/pegasus-box/blob/166a36ef7ebbf1ef628652bc41d80d39eaea91d3/.meta/screenshots/screen3.png)
 
 # Music Player - How to Add New Songs
 
