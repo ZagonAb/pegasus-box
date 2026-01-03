@@ -185,7 +185,7 @@ Item {
                             opacity: 0.3
                         }
 
-                        MouseArea {
+                        /*MouseArea {
                             id: sliderMouseArea
                             anchors.fill: parent
                             anchors.margins: vpx(-10)
@@ -235,7 +235,7 @@ Item {
                                 updateZoomLevelFromPosition()
                                 zoomControl.zoomChanged(zoomControl.zoomLevel)
                             }
-                        }
+                        }*/
 
                         Rectangle {
                             width: vpx(32)
@@ -282,7 +282,7 @@ Item {
                             }
                         }
 
-                        scale: sliderMouseArea.containsMouse || sliderMouseArea.dragging ? 1.3 : 1.0
+                        scale: 1.0  //sliderMouseArea.containsMouse || sliderMouseArea.dragging ? 1.3 : 1.0
 
                         Behavior on scale {
                             NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
