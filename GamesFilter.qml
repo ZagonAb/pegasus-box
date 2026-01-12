@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import SortFilterProxyModel 0.2
 import "utils.js" as Utils
-
 Item {
     id: gamesFilter
 
@@ -117,13 +116,13 @@ Item {
                 priority: 7
             },
 
-            RoleSorter {
+            /*RoleSorter {
                 id: playCountSorter
                 roleName: "playCount"
                 sortOrder: Qt.DescendingOrder
                 enabled: gamesFilter.globalSearchMode
                 priority: 6
-            },
+            },*/
 
             RoleSorter {
                 id: titleSorter
@@ -343,6 +342,3 @@ Item {
         }
     }
 }
-
-
-
