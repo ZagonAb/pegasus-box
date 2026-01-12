@@ -243,14 +243,12 @@ Item {
                 if (!hasFavorites && game.favorite === true) {
                     hasFavorites = true
                 }
-
                 if (!hasLastPlayed && game.lastPlayed) {
                     var timestamp = game.lastPlayed.getTime()
                     if (!isNaN(timestamp) && timestamp > 0) {
                         hasLastPlayed = true
                     }
                 }
-
                 if (!hasRating && game.rating > 0) {
                     hasRating = true
                 }
