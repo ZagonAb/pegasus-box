@@ -983,6 +983,34 @@ Item {
     }
 
     function updateFilterAvailability(collection) {
+        if (!collection && api.allGames && api.allGames.count > 0) {
+            var hasFavorites = false
+            var hasLastPlayed = false
+            var checkLimit = Math.min(api.allGames.count, 100)
+
+            for (var i = 0; i < checkLimit; i++) {
+                var game = api.allGames.get(i)
+                if (game) {
+                    if (!hasFavorites && game.favorite === true) {
+                        hasFavorites = true
+                    }
+                    if (!hasLastPlayed && game.lastPlayed) {
+                        var timestamp = game.lastPlayed.getTime()
+                        if (!isNaN(timestamp) && timestamp > 0) {
+                            hasLastPlayed = true
+                        }
+                    }
+                }
+                if (hasFavorites && hasLastPlayed) break
+            }
+
+            canFilterFavorites = hasFavorites
+            canFilterLastPlayed = hasLastPlayed
+
+            //console.log("CollectionTopSection: Game Library mode - Favorites:", canFilterFavorites, "Last Played:", canFilterLastPlayed)
+            return
+        }
+
         if (!collection || !collection.games) {
             canFilterFavorites = false
             canFilterLastPlayed = false

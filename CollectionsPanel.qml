@@ -82,6 +82,7 @@ FocusScope {
 
     CollectionTopSection {
         id: topSection
+        objectName: "topSection"
         anchors {
             top: titleRow.bottom
             left: parent.left
@@ -112,9 +113,97 @@ FocusScope {
     }
 
     Rectangle {
-        id: middleSeparator
+        id: gameLibraryButton
         anchors {
             top: topSection.bottom
+            left: parent.left
+            right: parent.right
+            margins: vpx(15)
+            topMargin: vpx(10)
+        }
+        height: vpx(45)
+        radius: vpx(6)
+        color: {
+            if (root.currentCollectionIndex === -1) {
+                return accentColor
+            }
+            if (libraryMouseArea.containsMouse && !libraryMouseArea.pressed) {
+                return "#333333"
+            }
+            return "#222222"
+        }
+        border.width: vpx(2)
+        border.color: root.currentCollectionIndex === -1 ? accentColor : borderColor
+
+        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+        Row {
+            anchors.centerIn: parent
+            spacing: vpx(10)
+
+            Item {
+                width: vpx(24)
+                height: vpx(24)
+                anchors.verticalCenter: parent.verticalCenter
+
+                Image {
+                    id: libraryIcon
+                    anchors.fill: parent
+                    source: "assets/images/icons/collection.svg"
+                    fillMode: Image.PreserveAspectFit
+                    mipmap: true
+                    visible: false
+                }
+
+                ColorOverlay {
+                    anchors.fill: libraryIcon
+                    source: libraryIcon
+                    color: root.currentCollectionIndex === -1 ? "#ffffff" : textColor
+                    cached: true
+                    visible: libraryIcon.status === Image.Ready
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "📚"
+                    font.pixelSize: vpx(20)
+                    visible: libraryIcon.status !== Image.Ready
+                }
+            }
+
+            Text {
+                text: "GAME LIBRARY"
+                color: root.currentCollectionIndex === -1 ? "#ffffff" : textColor
+                font.family: condensedFontFamily
+                font.pixelSize: vpx(18)
+                font.bold: true
+                anchors.verticalCenter: parent.verticalCenter
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+            }
+        }
+
+        MouseArea {
+            id: libraryMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+                root.activateGameLibrary()
+            }
+        }
+    }
+
+    Rectangle {
+        id: middleSeparator
+        anchors {
+            top: gameLibraryButton.bottom
             left: parent.left
             right: parent.right
             margins: vpx(20)

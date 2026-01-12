@@ -426,6 +426,10 @@ FocusScope {
         if (index >= 0 && index < api.collections.count) {
             isRestoringState = true
 
+            if (sharedGamesFilter) {
+                sharedGamesFilter.activateGameLibrary(false)
+            }
+
             root.currentCollectionIndex = index
             root.currentGameIndex = 0
 
@@ -438,6 +442,46 @@ FocusScope {
             isRestoringState = false
             root.saveState("collection_selected")
         }
+    }
+
+    function activateGameLibrary() {
+        isRestoringState = true
+        currentCollectionIndex = -1
+        currentGameIndex = 0
+
+        if (sharedGamesFilter) {
+            sharedGamesFilter.activateGameLibrary(true)
+        }
+
+        Qt.callLater(function() {
+            if (collectionsPanel && collectionsPanel.children) {
+                for (var i = 0; i < collectionsPanel.children.length; i++) {
+                    var child = collectionsPanel.children[i]
+                    if (child.objectName === "topSection" || child.toString().indexOf("CollectionTopSection") !== -1) {
+                        if (typeof child.updateFilterAvailability === "function") {
+                            child.updateFilterAvailability(null)
+                        }
+                        break
+                    }
+                }
+            }
+        })
+
+        if (gamesViewMode === "grid" && gamesGridView) {
+            gamesGridView.currentIndex = 0
+        } else if (gamesViewMode === "list" && gamesListView) {
+            gamesListView.currentIndex = 0
+        }
+
+        focusedPanel = "games"
+        if (gamesViewMode === "grid") {
+            gamesGridView.forceActiveFocus()
+        } else {
+            gamesListView.forceActiveFocus()
+        }
+
+        isRestoringState = false
+        saveState("game_library_activated")
     }
 
     function switchToGamesPanel() {
@@ -631,6 +675,10 @@ FocusScope {
 
     function selectCollectionWithMouse(index) {
         isRestoringState = true
+
+        if (sharedGamesFilter) {
+            sharedGamesFilter.activateGameLibrary(false)
+        }
 
         currentCollectionIndex = index
         currentGameIndex = 0

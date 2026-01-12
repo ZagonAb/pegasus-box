@@ -12,6 +12,7 @@ Item {
     property var filteredModel: gamesProxyModel
     property bool globalSearchMode: false
     property bool isSearching: false
+    property bool useAllGamesModel: false
 
     signal currentFilteredGameChanged(var game)
     signal searchCompleted()
@@ -20,10 +21,16 @@ Item {
         id: gamesProxyModel
 
         sourceModel: {
+            if (gamesFilter.useAllGamesModel) {
+                //console.log("GamesFilter: Using GAME LIBRARY mode (", api.allGames.count, "games )")
+                return api.allGames
+            }
+
             if (gamesFilter.globalSearchMode && gamesFilter.searchText !== "") {
                 //console.log("GamesFilter: Using api.allGames (", api.allGames.count, "games )")
                 return api.allGames
             }
+
             //console.log("GamesFilter: Using collection model")
             return gamesFilter.sourceModel
         }
@@ -206,7 +213,15 @@ Item {
     }
 
     function checkFilterAvailability(collection) {
-        if (!collection || !collection.games) {
+        var gamesToCheck = null
+
+        if (useAllGamesModel) {
+            gamesToCheck = api.allGames
+        } else if (collection && collection.games) {
+            gamesToCheck = collection.games
+        }
+
+        if (!gamesToCheck) {
             return {
                 favorites: false,
                 lastPlayed: false,
@@ -220,11 +235,11 @@ Item {
         var hasLastPlayed = false
         var hasRating = false
         var hasYear = false
-        var gamesCount = collection.games.count
+        var gamesCount = gamesToCheck.count
         var checkLimit = Math.min(gamesCount, 100)
 
         for (var i = 0; i < checkLimit; i++) {
-            var game = collection.games.get(i)
+            var game = gamesToCheck.get(i)
             if (game) {
                 if (!hasFavorites && game.favorite === true) {
                     hasFavorites = true
@@ -290,6 +305,26 @@ Item {
 
     signal filterChanged()
     signal searchChanged()
+
+    function activateGameLibrary(activate) {
+        //console.log("GamesFilter: Game Library mode", activate ? "ACTIVATED" : "DEACTIVATED")
+        useAllGamesModel = activate
+
+        if (activate) {
+            currentFilter = "All Games"
+            searchText = ""
+            searchField = "title"
+            globalSearchMode = false
+            isSearching = false
+        }
+
+        gamesProxyModel.invalidate()
+        filterChanged()
+
+        if (gamesProxyModel.count > 0) {
+            currentFilteredGameChanged(gamesProxyModel.get(0))
+        }
+    }
 
     Component.onCompleted: {
         //console.log("=".repeat(60))

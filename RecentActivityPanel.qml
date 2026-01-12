@@ -7,7 +7,6 @@ Item {
     id: recentActivityPanel
 
     property var gameModel: api.allGames
-    //property var currentNotification: notifications[currentNotificationIndex]
     property var currentNotification: notifications && notifications.length > 0 ? notifications[currentNotificationIndex] : null
     property int currentNotificationIndex: 0
     property int currentDeveloperIndex: 0
@@ -168,7 +167,7 @@ Item {
                 title: "🎂 Anniversary",
                 message: message,
                 color: highlightColor,
-                icon: icon
+                icon: "assets/images/icons/cake.svg"
             })
         }
 

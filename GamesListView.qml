@@ -108,6 +108,9 @@ FocusScope {
         Text {
             id: panelTitle
             text: {
+                if (root.currentCollectionIndex === -1) {
+                    return "GAME LIBRARY"
+                }
                 if (gamesFilter.globalSearchMode) {
                     return "GLOBAL SEARCH"
                 }
