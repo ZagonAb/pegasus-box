@@ -677,43 +677,189 @@ Item {
                 availableMedia[currentMediaIndex].label : ""
 
                 property var availableMedia: {
-                    if (!displayGame) return []
+                    if (!displayGame) return [];
 
-                        var media = []
-                        var assets = displayGame.assets
+                    var media = [];
+                    var assets = displayGame.assets;
 
-                        function addMedia(source, type, label) {
-                            if (source && source.toString() !== "") {
-                                media.push({
-                                    source: source,
-                                    type: type,
-                                    label: label,
-                                    isVideo: type === "video"
-                                })
+                    function addArrayToList(array, type, label) {
+                        if (array && array.length > 0) {
+                            for (var i = 0; i < array.length; i++) {
+                                var source = array[i];
+                                if (source && source.toString() !== "") {
+                                    media.push({
+                                        source: source,
+                                        type: type,
+                                        label: label + (array.length > 1 ? " " + (i + 1) : ""),
+                                               isVideo: type === "video",
+                                               orderPriority: getOrderPriority(type)
+                                    });
+                                }
                             }
                         }
+                    }
 
-                        addMedia(assets.screenshot, "image", "Screenshot")
-                        addMedia(assets.titlescreen, "image", "Title Screen")
-                        addMedia(assets.logo, "image", "Logo")
-                        addMedia(assets.boxFront, "image", "Box Front")
-                        addMedia(assets.boxFull, "image", "Box Full")
-                        addMedia(assets.boxBack, "image", "Box Back")
-                        addMedia(assets.boxSpine, "image", "Box Spine")
-                        addMedia(assets.background, "image", "Background")
-                        addMedia(assets.video, "video", "Video")
-                        addMedia(assets.banner, "image", "Banner")
-                        addMedia(assets.poster, "image", "Poster")
-                        addMedia(assets.tile, "image", "Tile")
-                        addMedia(assets.steam, "image", "Steam")
-                        addMedia(assets.marquee, "image", "Marquee")
-                        addMedia(assets.bezel, "image", "Bezel")
-                        addMedia(assets.panel, "image", "Panel")
-                        addMedia(assets.cabinetLeft, "image", "Cabinet L")
-                        addMedia(assets.cabinetRight, "image", "Cabinet R")
-                        addMedia(assets.cartridge, "image", "Cartridge")
+                    function getOrderPriority(type) {
+                        switch(type) {
+                            case "screenshot": return 1;
+                            case "image": return 1;
+                            case "titlescreen": return 2;
+                            case "logo": return 3;
+                            case "boxFront": return 4;
+                            case "boxFull": return 5;
+                            case "boxBack": return 6;
+                            case "boxSpine": return 7;
+                            case "background": return 8;
+                            case "banner": return 9;
+                            case "poster": return 10;
+                            case "tile": return 11;
+                            case "steam": return 12;
+                            case "marquee": return 13;
+                            case "bezel": return 14;
+                            case "panel": return 15;
+                            case "cabinetLeft": return 16;
+                            case "cabinetRight": return 17;
+                            case "cartridge": return 18;
+                            case "video": return 99;
+                            default: return 50;
+                        }
+                    }
 
-                        return media
+                    var allMediaItems = [];
+
+                    if (assets.screenshotList && assets.screenshotList.length > 0) {
+                        for (var i = 0; i < assets.screenshotList.length; i++) {
+                            var screenshotSource = assets.screenshotList[i];
+                            if (screenshotSource && screenshotSource.toString() !== "") {
+                                allMediaItems.push({
+                                    source: screenshotSource,
+                                    type: "screenshot",
+                                    label: "Screenshot" + (assets.screenshotList.length > 1 ? " " + (i + 1) : ""),
+                                                   isVideo: false,
+                                                   orderPriority: 1
+                                });
+                            }
+                        }
+                    } else if (assets.screenshot && assets.screenshot.toString() !== "") {
+                        allMediaItems.push({
+                            source: assets.screenshot,
+                            type: "screenshot",
+                            label: "Screenshot",
+                            isVideo: false,
+                            orderPriority: 1
+                        });
+                    }
+
+                    if (assets.titlescreenList && assets.titlescreenList.length > 0) {
+                        for (var j = 0; j < assets.titlescreenList.length; j++) {
+                            var titleSource = assets.titlescreenList[j];
+                            if (titleSource && titleSource.toString() !== "") {
+                                allMediaItems.push({
+                                    source: titleSource,
+                                    type: "titlescreen",
+                                    label: "Title Screen" + (assets.titlescreenList.length > 1 ? " " + (j + 1) : ""),
+                                                   isVideo: false,
+                                                   orderPriority: 2
+                                });
+                            }
+                        }
+                    } else if (assets.titlescreen && assets.titlescreen.toString() !== "") {
+                        allMediaItems.push({
+                            source: assets.titlescreen,
+                            type: "titlescreen",
+                            label: "Title Screen",
+                            isVideo: false,
+                            orderPriority: 2
+                        });
+                    }
+
+                    var otherAssets = [
+                        { prop: "logo", label: "Logo", priority: 3 },
+                        { prop: "boxFront", label: "Box Front", priority: 4 },
+                        { prop: "boxFull", label: "Box Full", priority: 5 },
+                        { prop: "boxBack", label: "Box Back", priority: 6 },
+                        { prop: "boxSpine", label: "Box Spine", priority: 7 },
+                        { prop: "background", label: "Background", priority: 8 },
+                        { prop: "banner", label: "Banner", priority: 9 },
+                        { prop: "poster", label: "Poster", priority: 10 },
+                        { prop: "tile", label: "Tile", priority: 11 },
+                        { prop: "steam", label: "Steam Grid", priority: 12 },
+                        { prop: "marquee", label: "Marquee", priority: 13 },
+                        { prop: "bezel", label: "Bezel", priority: 14 },
+                        { prop: "panel", label: "Panel", priority: 15 },
+                        { prop: "cabinetLeft", label: "Cabinet L", priority: 16 },
+                        { prop: "cabinetRight", label: "Cabinet R", priority: 17 },
+                        { prop: "cartridge", label: "Cartridge", priority: 18 }
+                    ];
+
+                    for (var k = 0; k < otherAssets.length; k++) {
+                        var asset = otherAssets[k];
+
+                        var listName = asset.prop + "List";
+                        if (assets[listName] && assets[listName].length > 0) {
+                            for (var l = 0; l < assets[listName].length; l++) {
+                                var listSource = assets[listName][l];
+                                if (listSource && listSource.toString() !== "") {
+                                    allMediaItems.push({
+                                        source: listSource,
+                                        type: asset.prop,
+                                        label: asset.label + (assets[listName].length > 1 ? " " + (l + 1) : ""),
+                                                       isVideo: false,
+                                                       orderPriority: asset.priority
+                                    });
+                                }
+                            }
+                        }
+                        else if (assets[asset.prop] && assets[asset.prop].toString() !== "") {
+                            allMediaItems.push({
+                                source: assets[asset.prop],
+                                type: asset.prop,
+                                label: asset.label,
+                                isVideo: false,
+                                orderPriority: asset.priority
+                            });
+                        }
+                    }
+
+                    if (assets.videoList && assets.videoList.length > 0) {
+                        for (var m = 0; m < assets.videoList.length; m++) {
+                            var videoSource = assets.videoList[m];
+                            if (videoSource && videoSource.toString() !== "") {
+                                allMediaItems.push({
+                                    source: videoSource,
+                                    type: "video",
+                                    label: "Video" + (assets.videoList.length > 1 ? " " + (m + 1) : ""),
+                                                   isVideo: true,
+                                                   orderPriority: 99
+                                });
+                            }
+                        }
+                    } else if (assets.video && assets.video.toString() !== "") {
+                        allMediaItems.push({
+                            source: assets.video,
+                            type: "video",
+                            label: "Video",
+                            isVideo: true,
+                            orderPriority: 99
+                        });
+                    }
+
+                    allMediaItems.sort(function(a, b) {
+                        return a.orderPriority - b.orderPriority;
+                    });
+
+                    var finalMedia = [];
+                    for (var n = 0; n < allMediaItems.length; n++) {
+                        var item = allMediaItems[n];
+                        finalMedia.push({
+                            source: item.source,
+                            type: item.type,
+                            label: item.label,
+                            isVideo: item.isVideo
+                        });
+                    }
+
+                    return finalMedia;
                 }
 
                 Text {
