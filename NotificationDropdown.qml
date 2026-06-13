@@ -92,16 +92,18 @@ Rectangle {
     function showWithAnimation() {
         if (animationRunning) return
 
-            animationRunning = true
-            visible = true
-            showAnimation.start()
+        animationRunning = true
+        notificationListView.contentY = 0
+        notificationListView.positionViewAtBeginning()
+        visible = true
+        showAnimation.start()
     }
 
     function hideWithAnimation() {
         if (animationRunning) return
 
-            animationRunning = true
-            hideAnimation.start()
+        animationRunning = true
+        hideAnimation.start()
     }
 
     function updateCollectionProgress() {
@@ -210,25 +212,39 @@ Rectangle {
 
     Rectangle {
         id: scrollBar
-        anchors.right: parent.right
-        anchors.top: dropdownHeader.bottom
-        anchors.bottom: parent.bottom
-        anchors.margins: vpx(5)
+        x: parent.width - width - vpx(5)
+        y: dropdownHeader.height + vpx(5)
         width: vpx(8)
+        height: parent.height - dropdownHeader.height - vpx(10)
         radius: vpx(4)
-        color: Qt.rgba(secondaryTextColor.r, secondaryTextColor.g, secondaryTextColor.b, 0.1)
-        visible: notificationListView.contentHeight > notificationListView.height
+        color: Qt.rgba(0.7, 0.7, 0.7, 0.1)
+        visible: notificationDropdown.visible
+                 && !notificationDropdown.animationRunning
+                 && notificationListView.contentHeight > notificationListView.height
 
         Rectangle {
             id: scrollHandle
             width: parent.width
-            height: Math.max(vpx(30), parent.height * (notificationListView.height / notificationListView.contentHeight))
             radius: parent.radius
             color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.5)
+
+            height: {
+                var ch = notificationListView.contentHeight
+                var vh = notificationListView.height
+                if (ch <= 0 || vh <= 0 || ch <= vh) return parent.height
+                var ratio = vh / ch
+                return Math.max(vpx(30), Math.min(parent.height, parent.height * ratio))
+            }
+
             y: {
-                var maxY = scrollBar.height - height
-                var ratio = notificationListView.contentY / (notificationListView.contentHeight - notificationListView.height)
-                return maxY * ratio
+                var ch = notificationListView.contentHeight
+                var vh = notificationListView.height
+                var scrollable = ch - vh
+                if (scrollable <= 0) return 0
+                var cy = Math.max(0, Math.min(notificationListView.contentY, scrollable))
+                var ratio = cy / scrollable
+                var maxHandleY = scrollBar.height - height
+                return Math.max(0, Math.min(maxHandleY, maxHandleY * ratio))
             }
 
             Behavior on color {
@@ -557,6 +573,7 @@ Rectangle {
             script: {
                 notificationDropdown.animationRunning = false
                 collectionProgressTimer.stop()
+                notificationListView.contentY = 0
             }
         }
     }

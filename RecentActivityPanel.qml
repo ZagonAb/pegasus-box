@@ -84,9 +84,6 @@ Item {
     }
 
     function updateNotifications() {
-        if (!dropdownVisible) {
-            return;
-        }
 
         if (!notifications || notifications.length === 0) {
             notifications = [];
@@ -1007,7 +1004,6 @@ Item {
     }
 
     Component.onCompleted: {
-        // Inicializar currentNotification con un valor por defecto
         currentNotification = {
             title: "",
             message: "",
@@ -1157,7 +1153,6 @@ Item {
                                 id: notificationContent
                                 anchors.fill: parent
                                 anchors.margins: vpx(2)
-                                //visible: !currentNotification.game && currentNotification.type !== "collection_progress"
                                 visible: safeCurrentNotification && !safeCurrentNotification.game && safeCurrentNotification.type !== "collection_progress"
                                 Image {
                                     id: backupIcon

@@ -243,33 +243,14 @@ Rectangle {
                     }
                 }
 
-                function updateBadgeCount() {
-                    var component = Qt.createComponent("RecentActivityPanel.qml")
-                    if (component.status === Component.Ready) {
-                        var tempPanel = component.createObject(notificationBadge, {
-                            gameModel: api.allGames,
-                            visible: false,
-                            dropdownVisible: notificationDropdownMenu.visible
-                        })
-
-                        if (tempPanel) {
-                            tempPanel.updateNotifications()
-                            var allNotifs = tempPanel.getAllNotifications()
-                            count = allNotifs.length
-                            visible = count > 0
-                            tempPanel.destroy()
-                        }
-                    }
-                }
-
                 Rectangle {
                     id: notificationBadge
                     visible: false
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: vpx(-4)
-                    width: vpx(20)
-                    height: vpx(20)
+                    width: vpx(30)
+                    height: vpx(30)
                     radius: vpx(10)
                     color: "#f44336"
                     border.width: vpx(2)
@@ -281,7 +262,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: Math.min(parent.count, 99)
                         font.family: root.condensedFontFamily
-                        font.pixelSize: vpx(12)
+                        font.pixelSize: vpx(14)
                         font.bold: true
                         color: "white"
                     }
@@ -292,21 +273,22 @@ Rectangle {
                             var tempPanel = component.createObject(notificationBadge, {
                                 gameModel: api.allGames,
                                 visible: false,
-                                dropdownVisible: notificationDropdownMenu.visible
+                                dropdownVisible: false
                             })
 
                             if (tempPanel) {
                                 tempPanel.updateNotifications()
                                 var allNotifs = tempPanel.getAllNotifications()
                                 count = allNotifs.length
-                                visible = count > 0
+                                visible = count > 0 && !notificationDropdownMenu.visible
                                 tempPanel.destroy()
                             }
                         }
                     }
 
                     Timer {
-                        interval: 5000
+                        id: badgeRefreshTimer
+                        interval: 60000
                         running: true
                         repeat: true
                         onTriggered: {
@@ -314,8 +296,14 @@ Rectangle {
                         }
                     }
 
-                    Component.onCompleted: {
-                        notificationBadge.updateBadgeCount()
+                    Timer {
+                        id: badgeStartupTimer
+                        interval: 1500
+                        running: true
+                        repeat: false
+                        onTriggered: {
+                            notificationBadge.updateBadgeCount()
+                        }
                     }
                 }
 
@@ -326,18 +314,21 @@ Rectangle {
 
                     onClicked: {
                         if (!notificationDropdownMenu.visible) {
+                            notificationBadge.visible = false
+
                             var allNotifs = []
                             var component = Qt.createComponent("RecentActivityPanel.qml")
                             if (component.status === Component.Ready) {
                                 var tempPanel = component.createObject(notificationButton, {
                                     gameModel: api.allGames,
                                     visible: false,
-                                    dropdownVisible: true
+                                    dropdownVisible: false
                                 })
 
                                 if (tempPanel) {
                                     tempPanel.updateNotifications()
                                     allNotifs = tempPanel.getAllNotifications()
+                                    notificationBadge.count = allNotifs.length
                                     tempPanel.destroy()
                                 }
                             }
@@ -346,6 +337,7 @@ Rectangle {
                             notificationDropdownMenu.showWithAnimation()
                         } else {
                             notificationDropdownMenu.hideWithAnimation()
+                            notificationBadge.visible = notificationBadge.count > 0
                         }
                     }
 

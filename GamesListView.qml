@@ -567,13 +567,13 @@ FocusScope {
 
                     Row {
                         anchors.fill: parent
-                        anchors.margins: vpx(10)
+                        anchors.margins: vpx(5)
                         spacing: vpx(15)
 
                         Rectangle {
                             id: gameImageContainer
-                            width: Math.min(parent.height * 0.8, vpx(80))
-                            height: parent.height - vpx(4)
+                            width: Math.min(parent.height * 1.2, vpx(80))
+                            height: parent.height - vpx(2)
                             radius: vpx(4)
                             color: "#222"
                             anchors.verticalCenter: parent.verticalCenter
@@ -581,7 +581,7 @@ FocusScope {
                             Image {
                                 id: gameImage
                                 anchors.fill: parent
-                                anchors.margins: vpx(2)
+                                anchors.margins: vpx(1)
                                 source: modelData.assets.boxFront || modelData.assets.logo || ""
                                 fillMode: Image.PreserveAspectFit
                                 asynchronous: true
@@ -604,32 +604,104 @@ FocusScope {
                             }
                         }
 
-                        Text {
-                            id: gameTitle
+                        Item {
+                            id: gameTitleMarquee
                             width: parent.width - gameImageContainer.width - itemIco.width - vpx(30)
+                            height: parent.height
                             anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
-                            color: isCurrent ? accentColor : textColor
-                            font.family: fontFamily
-                            font.pixelSize: {
+                            clip: true
+
+                            property bool needsScroll: gameTitleText1.implicitWidth > gameTitleMarquee.width
+                            property real scrollOffset: 0
+                            property real cycleWidth: gameTitleText1.implicitWidth + gameTitleSep.implicitWidth
+
+                            property real dynamicPixelSize: {
                                 var baseSize = 18
                                 var ratio = gamesListView.itemHeight / 140
-
                                 if (ratio >= 1.0) return vpx(baseSize * 1.2)
-                                    if (ratio >= 0.79) return vpx(baseSize * 1.1)
-                                        if (ratio >= 0.61) return vpx(baseSize)
-                                            if (ratio >= 0.46) return vpx(baseSize * 0.9)
-                                                return vpx(baseSize * 0.8)
-                            }
-                            font.bold: true
-                            elide: Text.ElideRight
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
+                                if (ratio >= 0.79) return vpx(baseSize * 1.1)
+                                if (ratio >= 0.61) return vpx(baseSize)
+                                if (ratio >= 0.46) return vpx(baseSize * 0.9)
+                                return vpx(baseSize * 0.8)
                             }
 
-                            Behavior on font.pixelSize {
-                                NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                            Text {
+                                id: gameTitleText1
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                                color: isCurrent ? accentColor : textColor
+                                font.family: fontFamily
+                                font.pixelSize: gameTitleMarquee.dynamicPixelSize
+                                font.bold: true
+                                elide: isCurrent ? Text.ElideNone : Text.ElideRight
+                                width: isCurrent ? implicitWidth : gameTitleMarquee.width
+                                x: -gameTitleMarquee.scrollOffset
+
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                                Behavior on font.pixelSize {
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                                }
+                            }
+
+                            Text {
+                                id: gameTitleSep
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "  •  "
+                                color: isCurrent ? accentColor : textColor
+                                font.family: fontFamily
+                                font.pixelSize: gameTitleMarquee.dynamicPixelSize
+                                font.bold: true
+                                elide: Text.ElideNone
+                                x: gameTitleText1.implicitWidth - gameTitleMarquee.scrollOffset
+                                visible: isCurrent && gameTitleMarquee.needsScroll
+                            }
+
+                            Text {
+                                id: gameTitleText2
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.title ? Utils.cleanGameTitle(modelData.title) : "Select a game"
+                                color: isCurrent ? accentColor : textColor
+                                font.family: fontFamily
+                                font.pixelSize: gameTitleMarquee.dynamicPixelSize
+                                font.bold: true
+                                elide: Text.ElideNone
+                                x: gameTitleText1.implicitWidth + gameTitleSep.implicitWidth - gameTitleMarquee.scrollOffset
+                                visible: isCurrent && gameTitleMarquee.needsScroll
+                            }
+
+                            NumberAnimation {
+                                id: gameTitleAnim
+                                target: gameTitleMarquee
+                                property: "scrollOffset"
+                                from: 0
+                                to: gameTitleMarquee.cycleWidth
+                                duration: gameTitleMarquee.cycleWidth * 22
+                                easing.type: Easing.Linear
+                                loops: Animation.Infinite
+                                running: false
+                            }
+
+                            onNeedsScrollChanged: {
+                                if (isCurrent && needsScroll) {
+                                    gameTitleMarquee.scrollOffset = 0;
+                                    gameTitleAnim.start();
+                                } else {
+                                    gameTitleAnim.stop();
+                                    gameTitleMarquee.scrollOffset = 0;
+                                }
+                            }
+
+                            Connections {
+                                target: gamesList
+                                function onCurrentIndexChanged() {
+                                    gameTitleAnim.stop();
+                                    gameTitleMarquee.scrollOffset = 0;
+                                    if (isCurrent && gameTitleMarquee.needsScroll) {
+                                        gameTitleAnim.start();
+                                    }
+                                }
                             }
                         }
 

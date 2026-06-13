@@ -243,7 +243,7 @@ FocusScope {
 
                 delegate: Item {
                     width: collectionsList.width
-                    height: vpx(40)
+                    height: vpx(45)
 
                     readonly property bool isCurrent: index === collectionsList.currentIndex
                     readonly property bool panelHasFocus: parent ? parent.focus : false
@@ -274,8 +274,8 @@ FocusScope {
                             spacing: vpx(10)
 
                             Rectangle {
-                                width: vpx(24)
-                                height: vpx(24)
+                                width: vpx(38)
+                                height: vpx(38)
                                 radius: vpx(3)
                                 color: "#333"
                                 anchors.verticalCenter: parent.verticalCenter
@@ -309,22 +309,88 @@ FocusScope {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: vpx(2)
 
-                                Text {
+                                Item {
+                                    id: collNameMarquee
                                     width: parent.width
-                                    text: modelData.name
-                                    color: isCurrent ? "#ffffff" : textColor
-                                    font.family: condensedFontFamily
-                                    font.pixelSize: vpx(12)
-                                    elide: Text.ElideRight
-                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    height: collNameText1.implicitHeight
+                                    clip: true
+
+                                    property bool needsScroll: collNameText1.implicitWidth > collNameMarquee.width
+                                    property real scrollOffset: 0
+                                    property real cycleWidth: collNameText1.implicitWidth + collNameSep.implicitWidth
+
+                                    Text {
+                                        id: collNameText1
+                                        text: modelData.name
+                                        color: isCurrent ? "#ffffff" : textColor
+                                        font.family: condensedFontFamily
+                                        font.pixelSize: vpx(16)
+                                        elide: isCurrent ? Text.ElideNone : Text.ElideRight
+                                        width: isCurrent ? implicitWidth : collNameMarquee.width
+                                        x: -collNameMarquee.scrollOffset
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                    }
+
+                                    Text {
+                                        id: collNameSep
+                                        text: "  •  "
+                                        color: "#ffffff"
+                                        font.family: condensedFontFamily
+                                        font.pixelSize: vpx(16)
+                                        x: collNameText1.implicitWidth - collNameMarquee.scrollOffset
+                                        visible: isCurrent && collNameMarquee.needsScroll
+                                    }
+
+                                    Text {
+                                        id: collNameText2
+                                        text: modelData.name
+                                        color: "#ffffff"
+                                        font.family: condensedFontFamily
+                                        font.pixelSize: vpx(16)
+                                        x: collNameText1.implicitWidth + collNameSep.implicitWidth - collNameMarquee.scrollOffset
+                                        visible: isCurrent && collNameMarquee.needsScroll
+                                    }
+
+                                    NumberAnimation {
+                                        id: collNameAnim
+                                        target: collNameMarquee
+                                        property: "scrollOffset"
+                                        from: 0
+                                        to: collNameMarquee.cycleWidth
+                                        duration: collNameMarquee.cycleWidth * 22
+                                        easing.type: Easing.Linear
+                                        loops: Animation.Infinite
+                                        running: false
+                                    }
+
+                                    onNeedsScrollChanged: {
+                                        if (isCurrent && needsScroll) {
+                                            collNameMarquee.scrollOffset = 0;
+                                            collNameAnim.start();
+                                        } else {
+                                            collNameAnim.stop();
+                                            collNameMarquee.scrollOffset = 0;
+                                        }
+                                    }
+
+                                    Connections {
+                                        target: collectionsList
+                                        function onCurrentIndexChanged() {
+                                            collNameAnim.stop();
+                                            collNameMarquee.scrollOffset = 0;
+                                            if (isCurrent && collNameMarquee.needsScroll) {
+                                                collNameAnim.start();
+                                            }
+                                        }
+                                    }
                                 }
 
                                 Text {
                                     width: parent.width
                                     text: modelData.games.count + " games"
-                                    color: isCurrent ? "#dddddd" : secondaryTextColor
+                                    color: isCurrent ? "#939393" : secondaryTextColor
                                     font.family: condensedFontFamily
-                                    font.pixelSize: vpx(10)
+                                    font.pixelSize: vpx(12)
                                     elide: Text.ElideRight
                                 }
                             }
